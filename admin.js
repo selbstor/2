@@ -1,7 +1,3 @@
-// ============================================
-// Gerenciador de Produtos — Atualizado e Otimizado
-// ============================================
-
 const URL_GRAVAR_PRODUTOS = ACHADINHOS.registrar_cliques;
 
 let produtos = [];
@@ -25,54 +21,40 @@ async function carregarProdutos() {
     }
 
     let texto = await resp.text();
-
-    if (texto.charCodeAt(0) === 0xFEFF) {
-      texto = texto.slice(1);
-    }
-
-    if (texto.length < 10) {
-      corpo.innerHTML = '<tr><td colspan="6" class="vazio">CSV vazio ou inválido.</td></tr>';
-      return;
-    }
+    if (texto.charCodeAt(0) === 0xFEFF) texto = texto.slice(1);
 
     produtos = parseCSV(texto);
     renderizarTabela();
-
   } catch (e) {
-    console.error('Erro ao carregar produtos:', e);
-    corpo.innerHTML = `<tr><td colspan="6" class="vazio">Erro de conexão: ${e.message}</td></tr>`;
+    console.error('Erro:', e);
+    corpo.innerHTML = `<tr><td colspan="6" class="vazio">Erro de conexão.</td></tr>`;
   }
 }
 
-// ============ PARSER CSV ROBUSTO ============
+// ============ PARSER CSV INTELIGENTE ============
 function parseCSV(texto) {
   const linhas = texto.split(/\r?\n/);
   if (linhas.length < 2) return [];
 
   let indiceCabecalho = -1;
   for (let i = 0; i < linhas.length; i++) {
-    const linhaStr = linhas[i].toLowerCase();
-    if (linhaStr.includes('ativo') && linhaStr.includes('nome')) {
+    const l = linhas[i].toLowerCase();
+    if (l.includes('ativo') && l.includes('nome')) {
       indiceCabecalho = i;
       break;
     }
   }
 
-  if (indiceCabecalho === -1) {
-    indiceCabecalho = linhas.findIndex(l => l.trim().length > 0);
-  }
-
-  if (indiceCabecalho === -1 || indiceCabecalho >= linhas.length - 1) return [];
-
+  if (indiceCabecalho === -1) indiceCabecalho = 0;
   const cabecalhos = parseLinhaCSV(linhas[indiceCabecalho]);
 
   return linhas.slice(indiceCabecalho + 1)
-    .filter(l => l.trim() && !l.includes('Ex: Físico') && !l.includes('Sim ou Não'))
+    .filter(l => l.trim().length > 0)
     .map((l, i) => {
       const cols = parseLinhaCSV(l);
       const obj = { _linha: indiceCabecalho + 1 + i + 1 };
       cabecalhos.forEach((h, idx) => {
-        obj[h] = cols[idx] !== undefined ? cols[idx] : '';
+        obj[h.trim()] = cols[idx] !== undefined ? cols[idx] : '';
       });
       return obj;
     });
@@ -111,19 +93,20 @@ function parseLinhaCSV(linha) {
   return res;
 }
 
+// Função universal para buscar propriedades ignorando maiúsculas/acentos
 function get(p, ...nomes) {
   for (const nome of nomes) {
     for (const chave of Object.keys(p)) {
       if (chave.startsWith('_')) continue;
-      const normChave = chave.toLowerCase().replace(/[^a-z0-9]/g, '');
-      const normNome = nome.toLowerCase().replace(/[^a-z0-9]/g, '');
+      const normChave = chave.toLowerCase().normalize('NFD').replace(/[\u0300-\u036f]/g, '').replace(/[^a-z0-9]/g, '');
+      const normNome = nome.toLowerCase().normalize('NFD').replace(/[\u0300-\u036f]/g, '').replace(/[^a-z0-9]/g, '');
       if (normChave === normNome) return p[chave];
     }
   }
   return '';
 }
 
-// ============ RENDERIZAR ============
+// ============ RENDERIZAR TABELA ============
 function renderizarTabela() {
   const busca = document.getElementById('busca').value.toLowerCase();
   const filtro = document.getElementById('filtroStatus').value;
@@ -145,7 +128,7 @@ function renderizarTabela() {
 
   corpo.innerHTML = filtrados.map(p => {
     const nome = get(p, 'Nome') || '(sem nome)';
-    const img = get(p, 'Imagem 1') || get(p, 'Imagem') || '';
+    const img = get(p, 'Imagem 1', 'Imagem') || '';
     const cat = get(p, 'Categoria') || '-';
     const destaque = get(p, 'Destaque') || 'Não';
     const ativo = get(p, 'Ativo') || 'Sim';
@@ -195,38 +178,32 @@ function editar(linha) {
   document.getElementById('modalTitulo').textContent = 'Editar Produto';
   document.getElementById('campoLinha').value = linha;
 
-  document.getElementById('nome').value = get(p, 'Nome') || '';
-  document.getElementById('tipo').value = get(p, 'Tipo') || '';
-  document.getElementById('plataforma').value = get(p, 'Plataforma') || '';
-  document.getElementById('categoria').value = get(p, 'Categoria') || '';
-  document.getElementById('subcategoria').value = get(p, 'Subcategoria') || '';
-  document.getElementById('validade').value = get(p, 'Validade da oferta') || '';
-  document.getElementById('link').value = get(p, 'Link de Afiliado') || get(p, 'Link') || '';
-  document.getElementById('textoBotao').value = get(p, 'Texto do Botão') || '';
-  document.getElementById('imagem1').value = get(p, 'Imagem 1') || get(p, 'Imagem') || '';
-  document.getElementById('imagem2').value = get(p, 'Imagem 2') || '';
-  document.getElementById('imagem3').value = get(p, 'Imagem 3') || '';
-  document.getElementById('imagem4').value = get(p, 'Imagem 4') || '';
-  document.getElementById('ordem').value = get(p, 'Ordem') || '';
+  document.getElementById('nome').value = get(p, 'Nome');
+  document.getElementById('tipo').value = get(p, 'Tipo');
+  document.getElementById('plataforma').value = get(p, 'Plataforma');
+  document.getElementById('categoria').value = get(p, 'Categoria');
+  document.getElementById('subcategoria').value = get(p, 'Subcategoria');
+  document.getElementById('validade').value = get(p, 'Validade da oferta');
+  document.getElementById('link').value = get(p, 'Link de Afiliado', 'Link');
+  document.getElementById('textoBotao').value = get(p, 'Texto do Botão');
+  document.getElementById('imagem1').value = get(p, 'Imagem 1', 'Imagem');
+  document.getElementById('imagem2').value = get(p, 'Imagem 2');
+  document.getElementById('imagem3').value = get(p, 'Imagem 3');
+  document.getElementById('imagem4').value = get(p, 'Imagem 4');
+  document.getElementById('ordem').value = get(p, 'Ordem');
   document.getElementById('destaque').value = get(p, 'Destaque') || 'Não';
   document.getElementById('ativo').value = get(p, 'Ativo') || 'Sim';
 
   abrirModal();
 }
 
-// ============ SALVAR ============
+// ============ SALVAR (VIA GET PARA EVITAR CORS) ============
 document.getElementById('formProduto').addEventListener('submit', async (e) => {
   e.preventDefault();
   const linha = document.getElementById('campoLinha').value;
 
-  const selectDestaque = document.getElementById('destaque');
-  const valorDestaque = selectDestaque ? selectDestaque.value : 'Não';
-
-  const selectAtivo = document.getElementById('ativo');
-  const valorAtivo = selectAtivo ? selectAtivo.value : 'Sim';
-
   const produto = {
-    'Ativo': valorAtivo,
+    'Ativo': document.getElementById('ativo').value,
     'Tipo': document.getElementById('tipo').value.trim(),
     'Plataforma': document.getElementById('plataforma').value.trim(),
     'Categoria': document.getElementById('categoria').value.trim(),
@@ -240,7 +217,7 @@ document.getElementById('formProduto').addEventListener('submit', async (e) => {
     'Imagem 3': document.getElementById('imagem3').value.trim(),
     'Imagem 4': document.getElementById('imagem4').value.trim(),
     'Ordem': document.getElementById('ordem').value.trim(),
-    'Destaque': valorDestaque,
+    'Destaque': document.getElementById('destaque').value,
   };
 
   const dados = {
@@ -251,23 +228,21 @@ document.getElementById('formProduto').addEventListener('submit', async (e) => {
 
   try {
     toast('Salvando alterações...', '');
-    console.log('Enviando dados para:', URL_GRAVAR_PRODUTOS);
+    const urlEnvio = `${URL_GRAVAR_PRODUTOS}?data=${encodeURIComponent(JSON.stringify(dados))}`;
+    
+    const resp = await fetch(urlEnvio, { method: 'GET' });
+    const resJson = await resp.json();
 
-    // Usando no-cors para evitar bloqueios de CORS do GitHub Pages para o Apps Script
-    await fetch(URL_GRAVAR_PRODUTOS, {
-      method: 'POST',
-      mode: 'no-cors',
-      headers: { 'Content-Type': 'text/plain;charset=utf-8' },
-      body: JSON.stringify(dados)
-    });
-
-    toast('✅ Salvo com sucesso! Atualizando...', 'sucesso');
-    fecharModal();
-    // Aguarda 2.5 segundos para o Google Sheets processar a gravação da linha antes de recarregar
-    setTimeout(carregarProdutos, 2500);
+    if (resJson.ok) {
+      toast('✅ ' + resJson.msg, 'sucesso');
+      fecharModal();
+      setTimeout(carregarProdutos, 1500);
+    } else {
+      toast('❌ Erro: ' + resJson.msg, 'erro');
+    }
   } catch (err) {
-    console.error('Erro ao salvar:', err);
-    toast('❌ Erro ao salvar: ' + err.message, 'erro');
+    console.error(err);
+    toast('❌ Erro ao salvar dados.', 'erro');
   }
 });
 
@@ -276,25 +251,27 @@ async function excluir(linha) {
   const p = produtos.find(x => x._linha === linha);
   const nomeProduto = p ? (get(p, 'Nome') || 'este produto') : 'este produto';
 
-  // Mensagem de confirmação personalizada e profissional incluindo o nome do produto
-  if (!confirm(`Deseja realmente excluir o produto:\n\n"${nomeProduto}"?\n\nEsta ação não poderá ser desfeita.`)) return;
+  if (!confirm(`Deseja realmente excluir:\n\n"${nomeProduto}"?`)) return;
 
   try {
-    toast('Excluindo produto...', '');
-    await fetch(URL_GRAVAR_PRODUTOS, {
-      method: 'POST',
-      mode: 'no-cors',
-      headers: { 'Content-Type': 'text/plain' },
-      body: JSON.stringify({ acao: 'excluir', linha: linha })
-    });
-    toast('✅ Produto excluído com sucesso!', 'sucesso');
-    setTimeout(carregarProdutos, 2500);
+    toast('Excluindo...', '');
+    const dados = { acao: 'excluir', linha: linha };
+    const urlEnvio = `${URL_GRAVAR_PRODUTOS}?data=${encodeURIComponent(JSON.stringify(dados))}`;
+    
+    const resp = await fetch(urlEnvio, { method: 'GET' });
+    const resJson = await resp.json();
+
+    if (resJson.ok) {
+      toast('✅ Excluído com sucesso!', 'sucesso');
+      setTimeout(carregarProdutos, 1500);
+    } else {
+      toast('❌ Erro ao excluir', 'erro');
+    }
   } catch (err) {
-    toast('❌ Erro ao excluir: ' + err.message, 'erro');
+    toast('❌ Erro de conexão.', 'erro');
   }
 }
 
-// ============ TOAST ============
 function toast(msg, tipo) {
   const t = document.getElementById('toast');
   t.textContent = msg;
@@ -302,7 +279,6 @@ function toast(msg, tipo) {
   setTimeout(() => t.classList.add('oculto'), 3500);
 }
 
-// ============ EVENTOS ============
 document.getElementById('btnNovo').onclick = novoProduto;
 document.getElementById('btnRecarregar').onclick = carregarProdutos;
 document.getElementById('busca').oninput = renderizarTabela;
