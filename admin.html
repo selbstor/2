@@ -1,120 +1,130 @@
-<!DOCTYPE html>
-<html lang="pt-BR">
-<head>
-<meta charset="UTF-8">
-<meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>Gerenciar Produtos — Selbstor|Achadinhos</title>
-<link rel="stylesheet" href="admin.css">
-</head>
-<body>
-  <header class="admin-header">
-    <h1>🛍️ Gerenciar Achadinhos</h1>
-    <button id="btnNovo" class="btn btn-primary">+ Novo Produto</button>
-  </header>
+<form id="formProduto">
+  <input type="hidden" id="campoLinha">
 
-  <main class="admin-main">
-    <div class="toolbar">
-      <input type="text" id="busca" placeholder="🔍 Buscar produto...">
-      <select id="filtroStatus">
-        <option value="">Todos os status</option>
-        <option value="Sim">Ativos</option>
-        <option value="Não">Inativos</option>
-      </select>
-      <button id="btnRecarregar" class="btn">🔄 Recarregar</button>
+  <h3 style="margin:16px 0 8px;color:#667eea;">📦 Dados principais</h3>
+
+  <div class="campo">
+    <label>Nome do produto *</label>
+    <input type="text" id="nome" required>
+  </div>
+
+  <div class="campo">
+    <label>Descrição</label>
+    <textarea id="descricao" rows="2"></textarea>
+  </div>
+
+  <div class="linha-dupla">
+    <div class="campo">
+      <label>Tipo</label>
+      <input type="text" id="tipo" placeholder="Ex: Físico ou Digital">
     </div>
-
-    <div id="tabelaWrap" class="tabela-wrap">
-      <table id="tabelaProdutos">
-        <thead>
-          <tr>
-            <th>Imagem</th>
-            <th>Nome</th>
-            <th>Categoria</th>
-            <th>Preço</th>
-            <th>Destaque</th>
-            <th>Status</th>
-            <th>Ações</th>
-          </tr>
-        </thead>
-        <tbody id="corpoTabela">
-          <tr><td colspan="7" class="vazio">Carregando produtos...</td></tr>
-        </tbody>
-      </table>
-    </div>
-  </main>
-
-  <!-- Modal de edição -->
-  <div id="modal" class="modal oculto">
-    <div class="modal-conteudo">
-      <div class="modal-header">
-        <h2 id="modalTitulo">Novo Produto</h2>
-        <button class="btn-fechar" onclick="fecharModal()">✕</button>
-      </div>
-      <form id="formProduto">
-        <input type="hidden" id="campoLinha">
-        <div class="campo">
-          <label>Nome do produto *</label>
-          <input type="text" id="nome" required>
-        </div>
-        <div class="campo">
-          <label>Descrição</label>
-          <textarea id="descricao" rows="2"></textarea>
-        </div>
-        <div class="linha-dupla">
-          <div class="campo">
-            <label>Preço original (R$)</label>
-            <input type="text" id="precoOriginal" placeholder="199,90">
-          </div>
-          <div class="campo">
-            <label>Preço promocional (R$) *</label>
-            <input type="text" id="precoPromo" required placeholder="99,90">
-          </div>
-        </div>
-        <div class="campo">
-          <label>Link do produto (afiliado) *</label>
-          <input type="url" id="link" required placeholder="https://...">
-        </div>
-        <div class="campo">
-          <label>URL da imagem *</label>
-          <input type="url" id="imagem" required placeholder="https://...">
-        </div>
-        <div class="linha-dupla">
-          <div class="campo">
-            <label>Categoria</label>
-            <input type="text" id="categoria" placeholder="Ex: Eletrônicos">
-          </div>
-          <div class="campo">
-            <label>Loja / Origem</label>
-            <input type="text" id="loja" placeholder="Ex: Amazon">
-          </div>
-        </div>
-        <div class="linha-dupla">
-          <div class="campo">
-            <label>Destaque?</label>
-            <select id="destaque">
-              <option value="Não">Não</option>
-              <option value="Sim">Sim</option>
-            </select>
-          </div>
-          <div class="campo">
-            <label>Ativo?</label>
-            <select id="ativo">
-              <option value="Sim">Sim</option>
-              <option value="Não">Não</option>
-            </select>
-          </div>
-        </div>
-        <div class="botoes-form">
-          <button type="button" class="btn" onclick="fecharModal()">Cancelar</button>
-          <button type="submit" class="btn btn-primary">💾 Salvar</button>
-        </div>
-      </form>
+    <div class="campo">
+      <label>Plataforma</label>
+      <input type="text" id="plataforma" placeholder="Ex: Shopee, Amazon">
     </div>
   </div>
 
-  <div id="toast" class="toast oculto"></div>
+  <div class="linha-dupla">
+    <div class="campo">
+      <label>Categoria</label>
+      <input type="text" id="categoria" placeholder="Ex: Casa, Eletrônicos">
+    </div>
+    <div class="campo">
+      <label>Subcategoria</label>
+      <input type="text" id="subcategoria" placeholder="Ex: Cozinha, Áudio">
+    </div>
+  </div>
 
-  <script src="config.js"></script>
-  <script src="admin.js"></script>
-</body>
-</html>
+  <h3 style="margin:20px 0 8px;color:#667eea;">💰 Preço e oferta</h3>
+
+  <div class="linha-dupla">
+    <div class="campo">
+      <label>Preço (R$) *</label>
+      <input type="text" id="precoOriginal" required placeholder="199,90">
+    </div>
+    <div class="campo">
+      <label>Preço Promocional (R$)</label>
+      <input type="text" id="precoPromo" placeholder="99,90">
+    </div>
+  </div>
+
+  <div class="linha-dupla">
+    <div class="campo">
+      <label>Cupom</label>
+      <input type="text" id="cupom" placeholder="CUPOM10">
+    </div>
+    <div class="campo">
+      <label>Validade da oferta</label>
+      <input type="text" id="validade" placeholder="31/12/2026">
+    </div>
+  </div>
+
+  <h3 style="margin:20px 0 8px;color:#667eea;">🔗 Link e botão</h3>
+
+  <div class="campo">
+    <label>Link de Afiliado *</label>
+    <input type="url" id="link" required placeholder="https://...">
+  </div>
+
+  <div class="linha-dupla">
+    <div class="campo">
+      <label>Texto do Botão</label>
+      <input type="text" id="textoBotao" placeholder="Compre na Amazon">
+    </div>
+    <div class="campo">
+      <label>Vídeo (URL YouTube)</label>
+      <input type="url" id="video" placeholder="https://youtube.com/...">
+    </div>
+  </div>
+
+  <h3 style="margin:20px 0 8px;color:#667eea;">🖼️ Imagens</h3>
+
+  <div class="campo">
+    <label>Imagem 1 (principal) *</label>
+    <input type="url" id="imagem1" required placeholder="https://...">
+  </div>
+
+  <div class="linha-dupla">
+    <div class="campo">
+      <label>Imagem 2</label>
+      <input type="url" id="imagem2">
+    </div>
+    <div class="campo">
+      <label>Imagem 3</label>
+      <input type="url" id="imagem3">
+    </div>
+  </div>
+
+  <div class="campo">
+    <label>Imagem 4</label>
+    <input type="url" id="imagem4">
+  </div>
+
+  <h3 style="margin:20px 0 8px;color:#667eea;">⚙️ Configurações</h3>
+
+  <div class="linha-tripla">
+    <div class="campo">
+      <label>Ordem</label>
+      <input type="number" id="ordem" placeholder="1">
+    </div>
+    <div class="campo">
+      <label>Destaque?</label>
+      <select id="destaque">
+        <option value="Não">Não</option>
+        <option value="Sim">Sim</option>
+      </select>
+    </div>
+    <div class="campo">
+      <label>Ativo?</label>
+      <select id="ativo">
+        <option value="Sim">Sim</option>
+        <option value="Não">Não</option>
+      </select>
+    </div>
+  </div>
+
+  <div class="botoes-form">
+    <button type="button" class="btn" onclick="fecharModal()">Cancelar</button>
+    <button type="submit" class="btn btn-primary"> Salvar</button>
+  </div>
+</form>
