@@ -1,5 +1,5 @@
 // ============================================
-// Gerenciador de Produtos — Versão Robusta
+// Gerenciador de Produtos — Versão Limpa
 // ============================================
 
 const URL_GRAVAR_PRODUTOS = ACHADINHOS.registrar_cliques;
@@ -10,75 +10,38 @@ let produtoEditando = null;
 // ============ CARREGAR ============
 async function carregarProdutos() {
   const corpo = document.getElementById('corpoTabela');
-  corpo.innerHTML = '<tr><td colspan="7" class="vazio">Carregando...</td></tr>';
-
-  // Remove diagnóstico anterior
-  const diagAnterior = document.getElementById('diagnostico');
-  if (diagAnterior) diagAnterior.remove();
-
-  // Cria painel de diagnóstico
-  const diag = document.createElement('div');
-  diag.id = 'diagnostico';
-  diag.style.cssText = 'margin:20px 30px;padding:15px;background:#1e1e1e;color:#0f0;border-radius:8px;font-family:monospace;font-size:12px;max-height:400px;overflow:auto;white-space:pre-wrap;border:2px solid #0f0;';
-  document.querySelector('.admin-main').insertBefore(diag, document.getElementById('tabelaWrap'));
-
-  diag.textContent = '🚀 Iniciando carregamento...\n';
-  diag.textContent += '📡 URL: ' + ACHADINHOS.planilha_catalogo + '\n\n';
+  corpo.innerHTML = '<tr><td colspan="7" class="vazio">Carregando produtos...</td></tr>';
 
   try {
-    diag.textContent += '⏳ Fazendo fetch...\n';
     const resp = await fetch(ACHADINHOS.planilha_catalogo + '&t=' + Date.now(), {
       method: 'GET',
       mode: 'cors',
       cache: 'no-cache'
     });
 
-    diag.textContent += '✅ Resposta recebida!\n';
-    diag.textContent += '   Status: ' + resp.status + ' ' + resp.statusText + '\n';
-    diag.textContent += '   Content-Type: ' + resp.headers.get('content-type') + '\n\n';
-
     if (!resp.ok) {
-      diag.textContent += '❌ HTTP Error: ' + resp.status + '\n';
-      corpo.innerHTML = '<tr><td colspan="7" class="vazio">Erro HTTP ' + resp.status + '. Veja diagnóstico acima.</td></tr>';
+      corpo.innerHTML = `<tr><td colspan="7" class="vazio">Erro HTTP ${resp.status} ao carregar planilha.</td></tr>`;
       return;
     }
 
     let texto = await resp.text();
 
-    // Remove BOM (Byte Order Mark) se existir
+    // Remove BOM se existir
     if (texto.charCodeAt(0) === 0xFEFF) {
       texto = texto.slice(1);
-      diag.textContent += '🔧 BOM removido do início do CSV\n';
     }
 
-    diag.textContent += '📄 Tamanho do CSV: ' + texto.length + ' caracteres\n';
-    diag.textContent += '📄 Primeiras 300 letras:\n---\n' + texto.substring(0, 300) + '\n---\n\n';
-
     if (texto.length < 10) {
-      diag.textContent += '❌ CSV vazio ou muito curto!\n';
-      corpo.innerHTML = '<tr><td colspan="7" class="vazio">CSV vazio.</td></tr>';
+      corpo.innerHTML = '<tr><td colspan="7" class="vazio">CSV vazio ou inválido.</td></tr>';
       return;
     }
 
     produtos = parseCSV(texto);
-
-    diag.textContent += '📊 Produtos parseados: ' + produtos.length + '\n';
-    if (produtos.length > 0) {
-      diag.textContent += '📦 Primeiro produto (bruto):\n';
-      diag.textContent += JSON.stringify(produtos[0], null, 2) + '\n\n';
-      diag.textContent += '🏷️ Chaves detectadas: ' + Object.keys(produtos[0]).filter(k => !k.startsWith('_')).join(', ') + '\n';
-    } else {
-      diag.textContent += '⚠️ Nenhum produto parseado! Verifique se a planilha possui dados válidos.\n';
-    }
-
     renderizarTabela();
 
-    diag.textContent += '\n✅ Carregamento concluído!\n';
-
   } catch (e) {
-    diag.textContent += '❌ ERRO: ' + e.message + '\n';
-    diag.textContent += '   Stack: ' + e.stack + '\n';
-    corpo.innerHTML = '<tr><td colspan="7" class="vazio">Erro: ' + e.message + '</td></tr>';
+    console.error('Erro ao carregar produtos:', e);
+    corpo.innerHTML = `<tr><td colspan="7" class="vazio">Erro de conexão: ${e.message}</td></tr>`;
   }
 }
 
@@ -105,11 +68,10 @@ function parseCSV(texto) {
   if (indiceCabecalho === -1 || indiceCabecalho >= linhas.length - 1) return [];
 
   const cabecalhos = parseLinhaCSV(linhas[indiceCabecalho]);
-  console.log('Cabeçalhos detectados na linha', indiceCabecalho + 1, ':', cabecalhos);
 
-  // Mapeia as linhas seguintes, ignorando linhas em branco
+  // Mapeia as linhas seguintes, ignorando linhas de exemplo/instrução ou vazias
   return linhas.slice(indiceCabecalho + 1)
-    .filter(l => l.trim())
+    .filter(l => l.trim() && !l.includes('Ex: Físico') && !l.includes('Sim ou Não'))
     .map((l, i) => {
       const cols = parseLinhaCSV(l);
       const obj = { _linha: indiceCabecalho + 1 + i + 1 }; // Linha real na planilha
