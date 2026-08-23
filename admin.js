@@ -1,5 +1,5 @@
 // ============================================
-// Gerenciador de Produtos — Sem Cupom e Vídeo
+// Gerenciador de Produtos — Completo e Atualizado
 // ============================================
 
 const URL_GRAVAR_PRODUTOS = ACHADINHOS.registrar_cliques;
@@ -250,17 +250,25 @@ document.getElementById('formProduto').addEventListener('submit', async (e) => {
 
   try {
     toast('Salvando...', '');
-    await fetch(URL_GRAVAR_PRODUTOS, {
+    console.log('Enviando dados para:', URL_GRAVAR_PRODUTOS);
+    console.log('Payload:', dados);
+
+    const resposta = await fetch(URL_GRAVAR_PRODUTOS, {
       method: 'POST',
-      mode: 'no-cors',
-      headers: { 'Content-Type': 'text/plain' },
+      redirect: 'follow',
+      headers: { 'Content-Type': 'text/plain;charset=utf-8' },
       body: JSON.stringify(dados)
     });
+
+    const resultadoTexto = await resposta.text();
+    console.log('Resposta do servidor:', resultadoTexto);
+
     toast('✅ Salvo! Recarregando...', 'sucesso');
     fecharModal();
     setTimeout(carregarProdutos, 1500);
   } catch (err) {
-    toast('❌ Erro: ' + err.message, 'erro');
+    console.error('Erro detalhado ao salvar:', err);
+    toast('❌ Erro ao salvar: ' + err.message, 'erro');
   }
 });
 
