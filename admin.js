@@ -22,7 +22,7 @@ async function carregarProdutos() {
   diag.style.cssText = 'margin:20px 30px;padding:15px;background:#1e1e1e;color:#0f0;border-radius:8px;font-family:monospace;font-size:12px;max-height:400px;overflow:auto;white-space:pre-wrap;border:2px solid #0f0;';
   document.querySelector('.admin-main').insertBefore(diag, document.getElementById('tabelaWrap'));
 
-  diag.textContent = ' Iniciando carregamento...\n';
+  diag.textContent = '🚀 Iniciando carregamento...\n';
   diag.textContent += '📡 URL: ' + ACHADINHOS.planilha_catalogo + '\n\n';
 
   try {
@@ -64,11 +64,11 @@ async function carregarProdutos() {
 
     diag.textContent += '📊 Produtos parseados: ' + produtos.length + '\n';
     if (produtos.length > 0) {
-      diag.textContent += ' Primeiro produto (bruto):\n';
+      diag.textContent += '📦 Primeiro produto (bruto):\n';
       diag.textContent += JSON.stringify(produtos[0], null, 2) + '\n\n';
       diag.textContent += '🏷️ Chaves detectadas: ' + Object.keys(produtos[0]).filter(k => !k.startsWith('_')).join(', ') + '\n';
     } else {
-      diag.textContent += '️ Nenhum produto parseado! Verifique o CSV acima.\n';
+      diag.textContent += '⚠️ Nenhum produto parseado! Verifique se a planilha possui dados válidos.\n';
     }
 
     renderizarTabela();
@@ -82,22 +82,42 @@ async function carregarProdutos() {
   }
 }
 
-// ============ PARSER CSV ROBUSTO ============
+// ============ PARSER CSV ROBUSTO (INTELIGENTE) ============
 function parseCSV(texto) {
-  const linhas = texto.split(/\r?\n/).filter(l => l.trim());
+  const linhas = texto.split(/\r?\n/);
   if (linhas.length < 2) return [];
 
-  const cabecalhos = parseLinhaCSV(linhas[0]);
-  console.log('Cabeçalhos:', cabecalhos);
+  // Procura automaticamente a linha que contém o cabeçalho real (procurando por "Ativo" e "Nome")
+  let indiceCabecalho = -1;
+  for (let i = 0; i < linhas.length; i++) {
+    const linhaStr = linhas[i].toLowerCase();
+    if (linhaStr.includes('ativo') && linhaStr.includes('nome')) {
+      indiceCabecalho = i;
+      break;
+    }
+  }
 
-  return linhas.slice(1).map((l, i) => {
-    const cols = parseLinhaCSV(l);
-    const obj = { _linha: i + 2 };
-    cabecalhos.forEach((h, idx) => {
-      obj[h] = cols[idx] !== undefined ? cols[idx] : '';
+  // Se não encontrar pelo critério exato, assume a primeira linha não vazia
+  if (indiceCabecalho === -1) {
+    indiceCabecalho = linhas.findIndex(l => l.trim().length > 0);
+  }
+
+  if (indiceCabecalho === -1 || indiceCabecalho >= linhas.length - 1) return [];
+
+  const cabecalhos = parseLinhaCSV(linhas[indiceCabecalho]);
+  console.log('Cabeçalhos detectados na linha', indiceCabecalho + 1, ':', cabecalhos);
+
+  // Mapeia as linhas seguintes, ignorando linhas em branco
+  return linhas.slice(indiceCabecalho + 1)
+    .filter(l => l.trim())
+    .map((l, i) => {
+      const cols = parseLinhaCSV(l);
+      const obj = { _linha: indiceCabecalho + 1 + i + 1 }; // Linha real na planilha
+      cabecalhos.forEach((h, idx) => {
+        obj[h] = cols[idx] !== undefined ? cols[idx] : '';
+      });
+      return obj;
     });
-    return obj;
-  });
 }
 
 // Parser que lida com vírgulas dentro de aspas
