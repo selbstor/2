@@ -1,5 +1,5 @@
 // ============================================
-// Gerenciador de Produtos — Versão Limpa
+// Gerenciador de Produtos — Versão Sem Descrição
 // ============================================
 
 const URL_GRAVAR_PRODUTOS = ACHADINHOS.registrar_cliques;
@@ -26,7 +26,6 @@ async function carregarProdutos() {
 
     let texto = await resp.text();
 
-    // Remove BOM se existir
     if (texto.charCodeAt(0) === 0xFEFF) {
       texto = texto.slice(1);
     }
@@ -45,12 +44,11 @@ async function carregarProdutos() {
   }
 }
 
-// ============ PARSER CSV ROBUSTO (INTELIGENTE) ============
+// ============ PARSER CSV ROBUSTO ============
 function parseCSV(texto) {
   const linhas = texto.split(/\r?\n/);
   if (linhas.length < 2) return [];
 
-  // Procura automaticamente a linha que contém o cabeçalho real (procurando por "Ativo" e "Nome")
   let indiceCabecalho = -1;
   for (let i = 0; i < linhas.length; i++) {
     const linhaStr = linhas[i].toLowerCase();
@@ -60,7 +58,6 @@ function parseCSV(texto) {
     }
   }
 
-  // Se não encontrar pelo critério exato, assume a primeira linha não vazia
   if (indiceCabecalho === -1) {
     indiceCabecalho = linhas.findIndex(l => l.trim().length > 0);
   }
@@ -69,12 +66,11 @@ function parseCSV(texto) {
 
   const cabecalhos = parseLinhaCSV(linhas[indiceCabecalho]);
 
-  // Mapeia as linhas seguintes, ignorando linhas de exemplo/instrução ou vazias
   return linhas.slice(indiceCabecalho + 1)
     .filter(l => l.trim() && !l.includes('Ex: Físico') && !l.includes('Sim ou Não'))
     .map((l, i) => {
       const cols = parseLinhaCSV(l);
-      const obj = { _linha: indiceCabecalho + 1 + i + 1 }; // Linha real na planilha
+      const obj = { _linha: indiceCabecalho + 1 + i + 1 };
       cabecalhos.forEach((h, idx) => {
         obj[h] = cols[idx] !== undefined ? cols[idx] : '';
       });
@@ -82,7 +78,6 @@ function parseCSV(texto) {
     });
 }
 
-// Parser que lida com vírgulas dentro de aspas
 function parseLinhaCSV(linha) {
   const res = [];
   let atual = '';
@@ -95,7 +90,7 @@ function parseLinhaCSV(linha) {
     if (aspas) {
       if (c === '"' && proximo === '"') {
         atual += '"';
-        i++; // pula a próxima aspa
+        i++;
       } else if (c === '"') {
         aspas = false;
       } else {
@@ -116,7 +111,6 @@ function parseLinhaCSV(linha) {
   return res;
 }
 
-// ============ HELPER ============
 function get(p, ...nomes) {
   for (const nome of nomes) {
     for (const chave of Object.keys(p)) {
@@ -204,7 +198,6 @@ function editar(linha) {
   document.getElementById('campoLinha').value = linha;
 
   document.getElementById('nome').value = get(p, 'Nome') || '';
-  document.getElementById('descricao').value = get(p, 'Descrição') || get(p, 'Descricao') || '';
   document.getElementById('tipo').value = get(p, 'Tipo') || '';
   document.getElementById('plataforma').value = get(p, 'Plataforma') || '';
   document.getElementById('categoria').value = get(p, 'Categoria') || '';
@@ -239,7 +232,7 @@ document.getElementById('formProduto').addEventListener('submit', async (e) => {
     'Categoria': document.getElementById('categoria').value.trim(),
     'Subcategoria': document.getElementById('subcategoria').value.trim(),
     'Nome': document.getElementById('nome').value.trim(),
-    'Descrição': document.getElementById('descricao').value.trim(),
+    'Descrição': '', // Mantém vazio ou ignorado
     'Preço': document.getElementById('precoOriginal').value.trim(),
     'Preço Promocional': document.getElementById('precoPromo').value.trim(),
     'Cupom': document.getElementById('cupom').value.trim(),
