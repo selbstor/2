@@ -1,5 +1,5 @@
 // ============================================
-// Gerenciador de Produtos — Completo e Atualizado
+// Gerenciador de Produtos — Correção do Destaque
 // ============================================
 
 const URL_GRAVAR_PRODUTOS = ACHADINHOS.registrar_cliques;
@@ -219,8 +219,14 @@ document.getElementById('formProduto').addEventListener('submit', async (e) => {
   e.preventDefault();
   const linha = document.getElementById('campoLinha').value;
 
+  const selectDestaque = document.getElementById('destaque');
+  const valorDestaque = selectDestaque ? selectDestaque.value : 'Não';
+
+  const selectAtivo = document.getElementById('ativo');
+  const valorAtivo = selectAtivo ? selectAtivo.value : 'Sim';
+
   const produto = {
-    'Ativo': document.getElementById('ativo').value,
+    'Ativo': valorAtivo,
     'Tipo': document.getElementById('tipo').value.trim(),
     'Plataforma': document.getElementById('plataforma').value.trim(),
     'Categoria': document.getElementById('categoria').value.trim(),
@@ -239,7 +245,7 @@ document.getElementById('formProduto').addEventListener('submit', async (e) => {
     'Imagem 3': document.getElementById('imagem3').value.trim(),
     'Imagem 4': document.getElementById('imagem4').value.trim(),
     'Ordem': document.getElementById('ordem').value.trim(),
-    'Destaque': document.getElementById('destaque').value,
+    'Destaque': valorDestaque,
   };
 
   const dados = {
