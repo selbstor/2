@@ -1,5 +1,5 @@
 // ============================================
-// Gerenciador de Produtos — Correção do Destaque
+// Gerenciador de Produtos — Atualizado e Otimizado
 // ============================================
 
 const URL_GRAVAR_PRODUTOS = ACHADINHOS.registrar_cliques;
@@ -232,14 +232,9 @@ document.getElementById('formProduto').addEventListener('submit', async (e) => {
     'Categoria': document.getElementById('categoria').value.trim(),
     'Subcategoria': document.getElementById('subcategoria').value.trim(),
     'Nome': document.getElementById('nome').value.trim(),
-    'Descrição': '',
-    'Preço': '',
-    'Preço Promocional': '',
-    'Cupom': '',
     'Validade da oferta': document.getElementById('validade').value.trim(),
     'Link de Afiliado': document.getElementById('link').value.trim(),
     'Texto do Botão': document.getElementById('textoBotao').value.trim(),
-    'Vídeo (URL YouTube)': '',
     'Imagem 1': document.getElementById('imagem1').value.trim(),
     'Imagem 2': document.getElementById('imagem2').value.trim(),
     'Imagem 3': document.getElementById('imagem3').value.trim(),
@@ -255,44 +250,47 @@ document.getElementById('formProduto').addEventListener('submit', async (e) => {
   };
 
   try {
-    toast('Salvando...', '');
+    toast('Salvando alterações...', '');
     console.log('Enviando dados para:', URL_GRAVAR_PRODUTOS);
-    console.log('Payload:', dados);
 
-    const resposta = await fetch(URL_GRAVAR_PRODUTOS, {
+    // Usando no-cors para evitar bloqueios de CORS do GitHub Pages para o Apps Script
+    await fetch(URL_GRAVAR_PRODUTOS, {
       method: 'POST',
-      redirect: 'follow',
+      mode: 'no-cors',
       headers: { 'Content-Type': 'text/plain;charset=utf-8' },
       body: JSON.stringify(dados)
     });
 
-    const resultadoTexto = await resposta.text();
-    console.log('Resposta do servidor:', resultadoTexto);
-
-    toast('✅ Salvo! Recarregando...', 'sucesso');
+    toast('✅ Salvo com sucesso! Atualizando...', 'sucesso');
     fecharModal();
-    setTimeout(carregarProdutos, 1500);
+    // Aguarda 2.5 segundos para o Google Sheets processar a gravação da linha antes de recarregar
+    setTimeout(carregarProdutos, 2500);
   } catch (err) {
-    console.error('Erro detalhado ao salvar:', err);
+    console.error('Erro ao salvar:', err);
     toast('❌ Erro ao salvar: ' + err.message, 'erro');
   }
 });
 
 // ============ EXCLUIR ============
 async function excluir(linha) {
-  if (!confirm('Confirma a exclusão deste produto?')) return;
+  const p = produtos.find(x => x._linha === linha);
+  const nomeProduto = p ? (get(p, 'Nome') || 'este produto') : 'este produto';
+
+  // Mensagem de confirmação personalizada e profissional incluindo o nome do produto
+  if (!confirm(`Deseja realmente excluir o produto:\n\n"${nomeProduto}"?\n\nEsta ação não poderá ser desfeita.`)) return;
+
   try {
-    toast('Excluindo...', '');
+    toast('Excluindo produto...', '');
     await fetch(URL_GRAVAR_PRODUTOS, {
       method: 'POST',
       mode: 'no-cors',
       headers: { 'Content-Type': 'text/plain' },
       body: JSON.stringify({ acao: 'excluir', linha: linha })
     });
-    toast('✅ Excluído! Recarregando...', 'sucesso');
-    setTimeout(carregarProdutos, 1500);
+    toast('✅ Produto excluído com sucesso!', 'sucesso');
+    setTimeout(carregarProdutos, 2500);
   } catch (err) {
-    toast('❌ Erro: ' + err.message, 'erro');
+    toast('❌ Erro ao excluir: ' + err.message, 'erro');
   }
 }
 
@@ -301,7 +299,7 @@ function toast(msg, tipo) {
   const t = document.getElementById('toast');
   t.textContent = msg;
   t.className = 'toast ' + (tipo || '');
-  setTimeout(() => t.classList.add('oculto'), 3000);
+  setTimeout(() => t.classList.add('oculto'), 3500);
 }
 
 // ============ EVENTOS ============
