@@ -1,5 +1,5 @@
 // ============================================
-// Gerenciador de Produtos — com DIAGNÓSTICO
+// Gerenciador de Produtos — Versão Robusta
 // ============================================
 
 const URL_GRAVAR_PRODUTOS = ACHADINHOS.registrar_cliques;
@@ -7,55 +7,72 @@ const URL_GRAVAR_PRODUTOS = ACHADINHOS.registrar_cliques;
 let produtos = [];
 let produtoEditando = null;
 
-// ============ CARREGAR COM DIAGNÓSTICO ============
+// ============ CARREGAR ============
 async function carregarProdutos() {
   const corpo = document.getElementById('corpoTabela');
   corpo.innerHTML = '<tr><td colspan="7" class="vazio">Carregando...</td></tr>';
 
-  // Limpa diagnóstico anterior
+  // Remove diagnóstico anterior
   const diagAnterior = document.getElementById('diagnostico');
   if (diagAnterior) diagAnterior.remove();
 
+  // Cria painel de diagnóstico
   const diag = document.createElement('div');
   diag.id = 'diagnostico';
-  diag.style.cssText = 'margin:20px 30px;padding:15px;background:#1e1e1e;color:#0f0;border-radius:8px;font-family:monospace;font-size:12px;max-height:400px;overflow:auto;white-space:pre-wrap;';
+  diag.style.cssText = 'margin:20px 30px;padding:15px;background:#1e1e1e;color:#0f0;border-radius:8px;font-family:monospace;font-size:12px;max-height:400px;overflow:auto;white-space:pre-wrap;border:2px solid #0f0;';
   document.querySelector('.admin-main').insertBefore(diag, document.getElementById('tabelaWrap'));
 
-  diag.textContent = '🔄 Iniciando carregamento...\n';
+  diag.textContent = ' Iniciando carregamento...\n';
   diag.textContent += '📡 URL: ' + ACHADINHOS.planilha_catalogo + '\n\n';
 
   try {
     diag.textContent += '⏳ Fazendo fetch...\n';
-    const resp = await fetch(ACHADINHOS.planilha_catalogo + '&t=' + Date.now());
-    
+    const resp = await fetch(ACHADINHOS.planilha_catalogo + '&t=' + Date.now(), {
+      method: 'GET',
+      mode: 'cors',
+      cache: 'no-cache'
+    });
+
     diag.textContent += '✅ Resposta recebida!\n';
     diag.textContent += '   Status: ' + resp.status + ' ' + resp.statusText + '\n';
     diag.textContent += '   Content-Type: ' + resp.headers.get('content-type') + '\n\n';
 
-    const texto = await resp.text();
-    
+    if (!resp.ok) {
+      diag.textContent += '❌ HTTP Error: ' + resp.status + '\n';
+      corpo.innerHTML = '<tr><td colspan="7" class="vazio">Erro HTTP ' + resp.status + '. Veja diagnóstico acima.</td></tr>';
+      return;
+    }
+
+    let texto = await resp.text();
+
+    // Remove BOM (Byte Order Mark) se existir
+    if (texto.charCodeAt(0) === 0xFEFF) {
+      texto = texto.slice(1);
+      diag.textContent += '🔧 BOM removido do início do CSV\n';
+    }
+
     diag.textContent += '📄 Tamanho do CSV: ' + texto.length + ' caracteres\n';
-    diag.textContent += '📄 Primeiras 500 letras do CSV:\n';
-    diag.textContent += '---\n' + texto.substring(0, 500) + '\n---\n\n';
+    diag.textContent += '📄 Primeiras 300 letras:\n---\n' + texto.substring(0, 300) + '\n---\n\n';
 
     if (texto.length < 10) {
       diag.textContent += '❌ CSV vazio ou muito curto!\n';
-      diag.textContent += '   Possível causa: planilha não publicada ou gid errado.\n';
-      corpo.innerHTML = '<tr><td colspan="7" class="vazio">CSV vazio. Veja o diagnóstico acima.</td></tr>';
+      corpo.innerHTML = '<tr><td colspan="7" class="vazio">CSV vazio.</td></tr>';
       return;
     }
 
     produtos = parseCSV(texto);
-    
+
     diag.textContent += '📊 Produtos parseados: ' + produtos.length + '\n';
     if (produtos.length > 0) {
-      diag.textContent += '📋 Primeiro produto (bruto):\n';
+      diag.textContent += ' Primeiro produto (bruto):\n';
       diag.textContent += JSON.stringify(produtos[0], null, 2) + '\n\n';
-      diag.textContent += '️ Chaves detectadas: ' + Object.keys(produtos[0]).filter(k=>!k.startsWith('_')).join(', ') + '\n';
+      diag.textContent += '🏷️ Chaves detectadas: ' + Object.keys(produtos[0]).filter(k => !k.startsWith('_')).join(', ') + '\n';
+    } else {
+      diag.textContent += '️ Nenhum produto parseado! Verifique o CSV acima.\n';
     }
 
     renderizarTabela();
-    
+
     diag.textContent += '\n✅ Carregamento concluído!\n';
 
   } catch (e) {
@@ -65,28 +82,53 @@ async function carregarProdutos() {
   }
 }
 
+// ============ PARSER CSV ROBUSTO ============
 function parseCSV(texto) {
   const linhas = texto.split(/\r?\n/).filter(l => l.trim());
   if (linhas.length < 2) return [];
 
-  const cabecalhos = parseLinha(linhas[0]);
+  const cabecalhos = parseLinhaCSV(linhas[0]);
   console.log('Cabeçalhos:', cabecalhos);
 
   return linhas.slice(1).map((l, i) => {
-    const cols = parseLinha(l);
+    const cols = parseLinhaCSV(l);
     const obj = { _linha: i + 2 };
-    cabecalhos.forEach((h, idx) => { obj[h] = cols[idx] || ''; });
+    cabecalhos.forEach((h, idx) => {
+      obj[h] = cols[idx] !== undefined ? cols[idx] : '';
+    });
     return obj;
   });
 }
 
-function parseLinha(linha) {
-  const res = []; let atual = ''; let aspas = false;
+// Parser que lida com vírgulas dentro de aspas
+function parseLinhaCSV(linha) {
+  const res = [];
+  let atual = '';
+  let aspas = false;
+
   for (let i = 0; i < linha.length; i++) {
     const c = linha[i];
-    if (c === '"') { aspas = !aspas; }
-    else if (c === ',' && !aspas) { res.push(atual.trim()); atual = ''; }
-    else { atual += c; }
+    const proximo = linha[i + 1];
+
+    if (aspas) {
+      if (c === '"' && proximo === '"') {
+        atual += '"';
+        i++; // pula a próxima aspa
+      } else if (c === '"') {
+        aspas = false;
+      } else {
+        atual += c;
+      }
+    } else {
+      if (c === '"') {
+        aspas = true;
+      } else if (c === ',') {
+        res.push(atual.trim());
+        atual = '';
+      } else {
+        atual += c;
+      }
+    }
   }
   res.push(atual.trim());
   return res;
@@ -97,8 +139,8 @@ function get(p, ...nomes) {
   for (const nome of nomes) {
     for (const chave of Object.keys(p)) {
       if (chave.startsWith('_')) continue;
-      const normChave = chave.toLowerCase().replace(/[^a-z0-9]/g,'');
-      const normNome = nome.toLowerCase().replace(/[^a-z0-9]/g,'');
+      const normChave = chave.toLowerCase().replace(/[^a-z0-9]/g, '');
+      const normNome = nome.toLowerCase().replace(/[^a-z0-9]/g, '');
       if (normChave === normNome) return p[chave];
     }
   }
@@ -152,7 +194,7 @@ function renderizarTabela() {
 
 function escapeHtml(s) {
   return String(s).replace(/[&<>"']/g, c => ({
-    '&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'
+    '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;'
   }[c]));
 }
 
