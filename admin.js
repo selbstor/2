@@ -1,50 +1,40 @@
 // ============================================
-// Gerenciador de Produtos — Achadinhos (v2)
+// Gerenciador de Produtos — Achadinhos (v3)
+// Mapeamento EXATO da planilha real
 // ============================================
 
 const URL_GRAVAR_PRODUTOS = ACHADINHOS.registrar_cliques;
 
 let produtos = [];
 let produtoEditando = null;
-let cabecalhosReais = []; // guarda os nomes reais das colunas
 
 // ============ CARREGAR ============
 async function carregarProdutos() {
   const corpo = document.getElementById('corpoTabela');
   corpo.innerHTML = '<tr><td colspan="7" class="vazio">Carregando...</td></tr>';
-  
+
   try {
     const resp = await fetch(ACHADINHOS.planilha_catalogo + '&t=' + Date.now());
     const texto = await resp.text();
-    
-    console.log('=== RAW CSV (primeiros 500 chars) ===');
-    console.log(texto.substring(0, 500));
-    
     produtos = parseCSV(texto);
     renderizarTabela();
-    mostrarDebugCabecalhos();
   } catch (e) {
-    corpo.innerHTML = '<tr><td colspan="7" class="vazio">❌ Erro ao carregar: ' + e.message + '</td></tr>';
-    toast('Erro ao carregar produtos', 'erro');
+    corpo.innerHTML = '<tr><td colspan="7" class="vazio">❌ Erro: ' + e.message + '</td></tr>';
+    toast('Erro ao carregar', 'erro');
   }
 }
 
 function parseCSV(texto) {
   const linhas = texto.split(/\r?\n/).filter(l => l.trim());
   if (linhas.length < 2) return [];
-  
+
   const cabecalhos = parseLinha(linhas[0]);
-  cabecalhosReais = cabecalhos; // guarda para debug
-  
-  console.log('=== CABEÇALHOS REAIS DA PLANILHA ===');
-  console.log(cabecalhos);
-  
+  console.log('Cabeçalhos reais:', cabecalhos);
+
   return linhas.slice(1).map((l, i) => {
     const cols = parseLinha(l);
     const obj = { _linha: i + 2 };
-    cabecalhos.forEach((h, idx) => {
-      obj[h] = cols[idx] || '';
-    });
+    cabecalhos.forEach((h, idx) => { obj[h] = cols[idx] || ''; });
     return obj;
   });
 }
@@ -61,45 +51,17 @@ function parseLinha(linha) {
   return res;
 }
 
-// ============ NORMALIZAÇÃO DE NOMES ============
-function normalizar(s) {
-  return String(s || '')
-    .toLowerCase()
-    .normalize('NFD').replace(/[\u0300-\u036f]/g, '') // remove acentos
-    .replace(/[^a-z0-9]/g, '') // remove espaços e símbolos
-    .trim();
-}
-
-function buscarCampo(produto, nomesPossiveis) {
-  // tenta cada nome possível (normalizado) contra cada chave real do produto
-  for (const chave of Object.keys(produto)) {
-    if (chave.startsWith('_')) continue;
-    const chaveNorm = normalizar(chave);
-    for (const nome of nomesPossiveis) {
-      if (chaveNorm === normalizar(nome)) {
-        return produto[chave];
+// ============ HELPER: buscar campo ignorando maiúsculas/acentos ============
+function get(p, ...nomes) {
+  for (const nome of nomes) {
+    for (const chave of Object.keys(p)) {
+      if (chave.startsWith('_')) continue;
+      if (chave.toLowerCase().replace(/[^a-z0-9]/g,'') === nome.toLowerCase().replace(/[^a-z0-9]/g,'')) {
+        return p[chave];
       }
     }
   }
   return '';
-}
-
-// Mapeamento flexível: cada campo aceita várias variações
-const MAPEAMENTO = {
-  nome:         ['Nome', 'nome', 'titulo', 'título', 'product', 'produto'],
-  descricao:    ['Descricao', 'Descrição', 'descricao', 'desc', 'description'],
-  precoOriginal:['Preço Original', 'Preco Original', 'precooriginal', 'preco_original', 'preco de', 'precode', 'precoantigo', 'preco antigo'],
-  precoPromo:   ['Preço Promocional', 'Preco Promocional', 'precopromo', 'preco_promo', 'preco', 'Preço', 'Preco', 'valor', 'precofinal', 'preco final'],
-  link:         ['Link', 'link', 'url', 'URL', 'href', 'linkproduto', 'link produto'],
-  imagem:       ['Imagem', 'imagem', 'img', 'foto', 'Foto', 'image', 'Image', 'urlimagem', 'url imagem'],
-  categoria:    ['Categoria', 'categoria', 'cat', 'category', 'grupo'],
-  loja:         ['Loja', 'loja', 'store', 'origem', 'marca', 'Marketplace'],
-  destaque:     ['Destaque', 'destaque', 'featured', 'destacado', 'emdestaque'],
-  ativo:        ['Ativo', 'ativo', 'status', 'Status', 'active', 'ativo?', 'sim', 'publicado']
-};
-
-function getCampo(produto, campo) {
-  return buscarCampo(produto, MAPEAMENTO[campo] || [campo]);
 }
 
 // ============ RENDERIZAR ============
@@ -109,10 +71,10 @@ function renderizarTabela() {
   const corpo = document.getElementById('corpoTabela');
 
   const filtrados = produtos.filter(p => {
-    const nome = getCampo(p, 'nome').toLowerCase();
-    const cat = getCampo(p, 'categoria').toLowerCase();
+    const nome = get(p, 'Nome').toLowerCase();
+    const cat = get(p, 'Categoria').toLowerCase();
+    const ativo = get(p, 'Ativo');
     const matchBusca = !busca || nome.includes(busca) || cat.includes(busca);
-    const ativo = getCampo(p, 'ativo');
     const matchStatus = !filtro || ativo === filtro;
     return matchBusca && matchStatus;
   });
@@ -123,13 +85,13 @@ function renderizarTabela() {
   }
 
   corpo.innerHTML = filtrados.map(p => {
-    const nome = getCampo(p, 'nome') || '(sem nome)';
-    const img = getCampo(p, 'imagem') || '';
-    const cat = getCampo(p, 'categoria') || '-';
-    const preco = getCampo(p, 'precoPromo') || getCampo(p, 'precoOriginal') || '-';
-    const destaque = getCampo(p, 'destaque') || 'Não';
-    const ativo = getCampo(p, 'ativo') || 'Sim';
-    
+    const nome = get(p, 'Nome') || '(sem nome)';
+    const img = get(p, 'Imagem 1') || '';
+    const cat = get(p, 'Categoria') || '-';
+    const preco = get(p, 'Preço Promocional') || get(p, 'Preço') || '-';
+    const destaque = get(p, 'Destaque') || 'Não';
+    const ativo = get(p, 'Ativo') || 'Sim';
+
     return `
       <tr>
         <td>${img ? `<img src="${img}" alt="" onerror="this.style.display='none'">` : '—'}</td>
@@ -140,7 +102,7 @@ function renderizarTabela() {
         <td><span class="badge badge-${ativo === 'Sim' ? 'sim' : 'nao'}">${ativo}</span></td>
         <td class="acoes">
           <button class="btn btn-sm btn-icono" title="Editar produto" onclick="editar(${p._linha})">✏️</button>
-          <button class="btn btn-sm btn-icono btn-danger" title="Excluir produto" onclick="excluir(${p._linha})">️</button>
+          <button class="btn btn-sm btn-icono btn-danger" title="Excluir produto" onclick="excluir(${p._linha})">🗑️</button>
         </td>
       </tr>
     `;
@@ -153,31 +115,8 @@ function escapeHtml(s) {
   }[c]));
 }
 
-// ============ PAINEL DE DEBUG ============
-function mostrarDebugCabecalhos() {
-  // Remove painel anterior se existir
-  const anterior = document.getElementById('painelDebug');
-  if (anterior) anterior.remove();
-  
-  const painel = document.createElement('div');
-  painel.id = 'painelDebug';
-  painel.style.cssText = 'margin:20px 30px;padding:15px;background:#fff3cd;border:1px solid #ffc107;border-radius:8px;font-size:13px;font-family:monospace;';
-  
-  painel.innerHTML = `
-    <strong>🔍 Debug — Colunas detectadas na planilha:</strong><br>
-    <code>${cabecalhosReais.join(' | ')}</code><br><br>
-    <strong>Primeiro produto (dados brutos):</strong><br>
-    <pre style="margin:5px 0;white-space:pre-wrap;">${JSON.stringify(produtos[0] || {}, null, 2)}</pre>
-    <button onclick="this.parentElement.remove()" style="margin-top:8px;padding:4px 10px;border:none;background:#ffc107;border-radius:4px;cursor:pointer;">✕ Fechar</button>
-  `;
-  
-  document.querySelector('.admin-main').insertBefore(painel, document.getElementById('tabelaWrap'));
-}
-
 // ============ MODAL ============
-function abrirModal() {
-  document.getElementById('modal').classList.remove('oculto');
-}
+function abrirModal() { document.getElementById('modal').classList.remove('oculto'); }
 function fecharModal() {
   document.getElementById('modal').classList.add('oculto');
   document.getElementById('formProduto').reset();
@@ -198,16 +137,28 @@ function editar(linha) {
   produtoEditando = p;
   document.getElementById('modalTitulo').textContent = 'Editar Produto';
   document.getElementById('campoLinha').value = linha;
-  document.getElementById('nome').value = getCampo(p, 'nome') || '';
-  document.getElementById('descricao').value = getCampo(p, 'descricao') || '';
-  document.getElementById('precoOriginal').value = getCampo(p, 'precoOriginal') || '';
-  document.getElementById('precoPromo').value = getCampo(p, 'precoPromo') || '';
-  document.getElementById('link').value = getCampo(p, 'link') || '';
-  document.getElementById('imagem').value = getCampo(p, 'imagem') || '';
-  document.getElementById('categoria').value = getCampo(p, 'categoria') || '';
-  document.getElementById('loja').value = getCampo(p, 'loja') || '';
-  document.getElementById('destaque').value = getCampo(p, 'destaque') || 'Não';
-  document.getElementById('ativo').value = getCampo(p, 'ativo') || 'Sim';
+
+  document.getElementById('nome').value = get(p, 'Nome') || '';
+  document.getElementById('descricao').value = get(p, 'Descrição') || get(p, 'Descricao') || '';
+  document.getElementById('tipo').value = get(p, 'Tipo') || '';
+  document.getElementById('plataforma').value = get(p, 'Plataforma') || '';
+  document.getElementById('categoria').value = get(p, 'Categoria') || '';
+  document.getElementById('subcategoria').value = get(p, 'Subcategoria') || '';
+  document.getElementById('precoOriginal').value = get(p, 'Preço') || get(p, 'Preco') || '';
+  document.getElementById('precoPromo').value = get(p, 'Preço Promocional') || get(p, 'Preco Promocional') || '';
+  document.getElementById('cupom').value = get(p, 'Cupom') || '';
+  document.getElementById('validade').value = get(p, 'Validade da oferta') || '';
+  document.getElementById('link').value = get(p, 'Link de Afiliado') || get(p, 'Link') || '';
+  document.getElementById('textoBotao').value = get(p, 'Texto do Botão') || '';
+  document.getElementById('video').value = get(p, 'Vídeo (URL YouTube)') || get(p, 'Video') || '';
+  document.getElementById('imagem1').value = get(p, 'Imagem 1') || get(p, 'Imagem') || '';
+  document.getElementById('imagem2').value = get(p, 'Imagem 2') || '';
+  document.getElementById('imagem3').value = get(p, 'Imagem 3') || '';
+  document.getElementById('imagem4').value = get(p, 'Imagem 4') || '';
+  document.getElementById('ordem').value = get(p, 'Ordem') || '';
+  document.getElementById('destaque').value = get(p, 'Destaque') || 'Não';
+  document.getElementById('ativo').value = get(p, 'Ativo') || 'Sim';
+
   abrirModal();
 }
 
@@ -215,21 +166,34 @@ function editar(linha) {
 document.getElementById('formProduto').addEventListener('submit', async (e) => {
   e.preventDefault();
   const linha = document.getElementById('campoLinha').value;
+
+  const produto = {
+    'Ativo': document.getElementById('ativo').value,
+    'Tipo': document.getElementById('tipo').value.trim(),
+    'Plataforma': document.getElementById('plataforma').value.trim(),
+    'Categoria': document.getElementById('categoria').value.trim(),
+    'Subcategoria': document.getElementById('subcategoria').value.trim(),
+    'Nome': document.getElementById('nome').value.trim(),
+    'Descrição': document.getElementById('descricao').value.trim(),
+    'Preço': document.getElementById('precoOriginal').value.trim(),
+    'Preço Promocional': document.getElementById('precoPromo').value.trim(),
+    'Cupom': document.getElementById('cupom').value.trim(),
+    'Validade da oferta': document.getElementById('validade').value.trim(),
+    'Link de Afiliado': document.getElementById('link').value.trim(),
+    'Texto do Botão': document.getElementById('textoBotao').value.trim(),
+    'Vídeo (URL YouTube)': document.getElementById('video').value.trim(),
+    'Imagem 1': document.getElementById('imagem1').value.trim(),
+    'Imagem 2': document.getElementById('imagem2').value.trim(),
+    'Imagem 3': document.getElementById('imagem3').value.trim(),
+    'Imagem 4': document.getElementById('imagem4').value.trim(),
+    'Ordem': document.getElementById('ordem').value.trim(),
+    'Destaque': document.getElementById('destaque').value,
+  };
+
   const dados = {
     acao: linha ? 'editar' : 'novo',
     linha: linha ? parseInt(linha) : null,
-    produto: {
-      Nome: document.getElementById('nome').value.trim(),
-      Descricao: document.getElementById('descricao').value.trim(),
-      'Preço Original': document.getElementById('precoOriginal').value.trim(),
-      'Preço Promocional': document.getElementById('precoPromo').value.trim(),
-      Link: document.getElementById('link').value.trim(),
-      Imagem: document.getElementById('imagem').value.trim(),
-      Categoria: document.getElementById('categoria').value.trim(),
-      Loja: document.getElementById('loja').value.trim(),
-      Destaque: document.getElementById('destaque').value,
-      Ativo: document.getElementById('ativo').value,
-    }
+    produto: produto
   };
 
   try {
@@ -244,7 +208,7 @@ document.getElementById('formProduto').addEventListener('submit', async (e) => {
     fecharModal();
     setTimeout(carregarProdutos, 1500);
   } catch (err) {
-    toast('❌ Erro ao salvar: ' + err.message, 'erro');
+    toast('❌ Erro: ' + err.message, 'erro');
   }
 });
 
@@ -280,5 +244,4 @@ document.getElementById('btnRecarregar').onclick = carregarProdutos;
 document.getElementById('busca').oninput = renderizarTabela;
 document.getElementById('filtroStatus').onchange = renderizarTabela;
 
-// Iniciar
 carregarProdutos();
