@@ -1,5 +1,5 @@
 // ============================================
-// Gerenciador de Produtos — Correção da Tabela
+// Gerenciador de Produtos — Sem Cupom e Vídeo
 // ============================================
 
 const URL_GRAVAR_PRODUTOS = ACHADINHOS.registrar_cliques;
@@ -200,11 +200,9 @@ function editar(linha) {
   document.getElementById('plataforma').value = get(p, 'Plataforma') || '';
   document.getElementById('categoria').value = get(p, 'Categoria') || '';
   document.getElementById('subcategoria').value = get(p, 'Subcategoria') || '';
-  document.getElementById('cupom').value = get(p, 'Cupom') || '';
   document.getElementById('validade').value = get(p, 'Validade da oferta') || '';
   document.getElementById('link').value = get(p, 'Link de Afiliado') || get(p, 'Link') || '';
   document.getElementById('textoBotao').value = get(p, 'Texto do Botão') || '';
-  document.getElementById('video').value = get(p, 'Vídeo (URL YouTube)') || get(p, 'Video') || '';
   document.getElementById('imagem1').value = get(p, 'Imagem 1') || get(p, 'Imagem') || '';
   document.getElementById('imagem2').value = get(p, 'Imagem 2') || '';
   document.getElementById('imagem3').value = get(p, 'Imagem 3') || '';
@@ -231,11 +229,11 @@ document.getElementById('formProduto').addEventListener('submit', async (e) => {
     'Descrição': '',
     'Preço': '',
     'Preço Promocional': '',
-    'Cupom': document.getElementById('cupom').value.trim(),
+    'Cupom': '',
     'Validade da oferta': document.getElementById('validade').value.trim(),
     'Link de Afiliado': document.getElementById('link').value.trim(),
     'Texto do Botão': document.getElementById('textoBotao').value.trim(),
-    'Vídeo (URL YouTube)': document.getElementById('video').value.trim(),
+    'Vídeo (URL YouTube)': '',
     'Imagem 1': document.getElementById('imagem1').value.trim(),
     'Imagem 2': document.getElementById('imagem2').value.trim(),
     'Imagem 3': document.getElementById('imagem3').value.trim(),
