@@ -1,5 +1,5 @@
 // ============================================
-// Gerenciador de Produtos — Versão Sem Descrição
+// Gerenciador de Produtos — Sem Descrição e Preços
 // ============================================
 
 const URL_GRAVAR_PRODUTOS = ACHADINHOS.registrar_cliques;
@@ -202,8 +202,6 @@ function editar(linha) {
   document.getElementById('plataforma').value = get(p, 'Plataforma') || '';
   document.getElementById('categoria').value = get(p, 'Categoria') || '';
   document.getElementById('subcategoria').value = get(p, 'Subcategoria') || '';
-  document.getElementById('precoOriginal').value = get(p, 'Preço') || get(p, 'Preco') || '';
-  document.getElementById('precoPromo').value = get(p, 'Preço Promocional') || get(p, 'Preco Promocional') || '';
   document.getElementById('cupom').value = get(p, 'Cupom') || '';
   document.getElementById('validade').value = get(p, 'Validade da oferta') || '';
   document.getElementById('link').value = get(p, 'Link de Afiliado') || get(p, 'Link') || '';
@@ -232,9 +230,9 @@ document.getElementById('formProduto').addEventListener('submit', async (e) => {
     'Categoria': document.getElementById('categoria').value.trim(),
     'Subcategoria': document.getElementById('subcategoria').value.trim(),
     'Nome': document.getElementById('nome').value.trim(),
-    'Descrição': '', // Mantém vazio ou ignorado
-    'Preço': document.getElementById('precoOriginal').value.trim(),
-    'Preço Promocional': document.getElementById('precoPromo').value.trim(),
+    'Descrição': '',
+    'Preço': '',
+    'Preço Promocional': '',
     'Cupom': document.getElementById('cupom').value.trim(),
     'Validade da oferta': document.getElementById('validade').value.trim(),
     'Link de Afiliado': document.getElementById('link').value.trim(),
