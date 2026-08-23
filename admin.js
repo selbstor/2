@@ -1,5 +1,5 @@
 // ============================================
-// Gerenciador de Produtos — Sem Descrição e Preços
+// Gerenciador de Produtos — Correção da Tabela
 // ============================================
 
 const URL_GRAVAR_PRODUTOS = ACHADINHOS.registrar_cliques;
@@ -10,7 +10,7 @@ let produtoEditando = null;
 // ============ CARREGAR ============
 async function carregarProdutos() {
   const corpo = document.getElementById('corpoTabela');
-  corpo.innerHTML = '<tr><td colspan="7" class="vazio">Carregando produtos...</td></tr>';
+  corpo.innerHTML = '<tr><td colspan="6" class="vazio">Carregando produtos...</td></tr>';
 
   try {
     const resp = await fetch(ACHADINHOS.planilha_catalogo + '&t=' + Date.now(), {
@@ -20,7 +20,7 @@ async function carregarProdutos() {
     });
 
     if (!resp.ok) {
-      corpo.innerHTML = `<tr><td colspan="7" class="vazio">Erro HTTP ${resp.status} ao carregar planilha.</td></tr>`;
+      corpo.innerHTML = `<tr><td colspan="6" class="vazio">Erro HTTP ${resp.status} ao carregar planilha.</td></tr>`;
       return;
     }
 
@@ -31,7 +31,7 @@ async function carregarProdutos() {
     }
 
     if (texto.length < 10) {
-      corpo.innerHTML = '<tr><td colspan="7" class="vazio">CSV vazio ou inválido.</td></tr>';
+      corpo.innerHTML = '<tr><td colspan="6" class="vazio">CSV vazio ou inválido.</td></tr>';
       return;
     }
 
@@ -40,7 +40,7 @@ async function carregarProdutos() {
 
   } catch (e) {
     console.error('Erro ao carregar produtos:', e);
-    corpo.innerHTML = `<tr><td colspan="7" class="vazio">Erro de conexão: ${e.message}</td></tr>`;
+    corpo.innerHTML = `<tr><td colspan="6" class="vazio">Erro de conexão: ${e.message}</td></tr>`;
   }
 }
 
@@ -139,7 +139,7 @@ function renderizarTabela() {
   });
 
   if (filtrados.length === 0) {
-    corpo.innerHTML = '<tr><td colspan="7" class="vazio">Nenhum produto encontrado</td></tr>';
+    corpo.innerHTML = '<tr><td colspan="6" class="vazio">Nenhum produto encontrado</td></tr>';
     return;
   }
 
@@ -147,7 +147,6 @@ function renderizarTabela() {
     const nome = get(p, 'Nome') || '(sem nome)';
     const img = get(p, 'Imagem 1') || get(p, 'Imagem') || '';
     const cat = get(p, 'Categoria') || '-';
-    const preco = get(p, 'Preço Promocional') || get(p, 'Preço') || '-';
     const destaque = get(p, 'Destaque') || 'Não';
     const ativo = get(p, 'Ativo') || 'Sim';
 
@@ -156,7 +155,6 @@ function renderizarTabela() {
         <td>${img ? `<img src="${img}" alt="" onerror="this.style.display='none'">` : '—'}</td>
         <td><strong>${escapeHtml(nome)}</strong></td>
         <td>${escapeHtml(cat)}</td>
-        <td>R$ ${escapeHtml(preco)}</td>
         <td><span class="badge badge-${destaque === 'Sim' ? 'destaque' : 'nao'}">${destaque}</span></td>
         <td><span class="badge badge-${ativo === 'Sim' ? 'sim' : 'nao'}">${ativo}</span></td>
         <td class="acoes">
