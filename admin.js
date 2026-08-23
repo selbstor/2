@@ -87,10 +87,10 @@ function renderizarTabela() {
         <td>R$ ${escapeHtml(preco)}</td>
         <td><span class="badge badge-${destaque === 'Sim' ? 'destaque' : 'nao'}">${destaque}</span></td>
         <td><span class="badge badge-${ativo === 'Sim' ? 'sim' : 'nao'}">${ativo}</span></td>
-        <td class="acoes">
-          <button class="btn btn-sm" onclick="editar(${p._linha})">✏️ Editar</button>
-          <button class="btn btn-sm btn-danger" onclick="excluir(${p._linha})">🗑️</button>
-        </td>
+<td class="acoes">
+  <button class="btn btn-sm btn-icono" title="Editar produto" onclick="editar(${p._linha})">✏️</button>
+  <button class="btn btn-sm btn-icono btn-danger" title="Excluir produto" onclick="excluir(${p._linha})">🗑️</button>
+</td>
       </tr>
     `;
   }).join('');
