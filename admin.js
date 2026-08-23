@@ -211,7 +211,6 @@ document.getElementById('formProduto').addEventListener('submit', async (e) => {
     'Nome': document.getElementById('nome').value.trim(),
     'Validade da oferta': document.getElementById('validade').value.trim(),
     'Link de Afiliado': document.getElementById('link').value.trim(),
-    'Texto do Botão': document.getElementById('textoBotao').value.trim(),
     'Imagem 1': document.getElementById('imagem1').value.trim(),
     'Imagem 2': document.getElementById('imagem2').value.trim(),
     'Imagem 3': document.getElementById('imagem3').value.trim(),
