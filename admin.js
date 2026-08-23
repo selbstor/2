@@ -1,28 +1,30 @@
 // ============================================
-// Gerenciador de Produtos — Achadinhos
+// Gerenciador de Produtos — Achadinhos (v2)
 // ============================================
 
-// URL do Apps Script que grava na planilha (MESMA do config.js ou nova)
-const URL_GRAVAR = ACHADINHOS.registrar_cliques; 
-// ⚠️ IMPORTANTE: crie uma NOVA função no Apps Script para gravar produtos
-// e coloque a URL aqui. Exemplo abaixo.
-const URL_GRAVAR_PRODUTOS = ACHADINHOS.registrar_cliques; // ajuste se criar novo endpoint
+const URL_GRAVAR_PRODUTOS = ACHADINHOS.registrar_cliques;
 
 let produtos = [];
 let produtoEditando = null;
+let cabecalhosReais = []; // guarda os nomes reais das colunas
 
 // ============ CARREGAR ============
 async function carregarProdutos() {
-  document.getElementById('corpoTabela').innerHTML =
-    '<tr><td colspan="7" class="vazio">Carregando...</td></tr>';
+  const corpo = document.getElementById('corpoTabela');
+  corpo.innerHTML = '<tr><td colspan="7" class="vazio">Carregando...</td></tr>';
+  
   try {
     const resp = await fetch(ACHADINHOS.planilha_catalogo + '&t=' + Date.now());
     const texto = await resp.text();
+    
+    console.log('=== RAW CSV (primeiros 500 chars) ===');
+    console.log(texto.substring(0, 500));
+    
     produtos = parseCSV(texto);
     renderizarTabela();
+    mostrarDebugCabecalhos();
   } catch (e) {
-    document.getElementById('corpoTabela').innerHTML =
-      '<tr><td colspan="7" class="vazio">Erro ao carregar. Verifique a publicação da planilha.</td></tr>';
+    corpo.innerHTML = '<tr><td colspan="7" class="vazio">❌ Erro ao carregar: ' + e.message + '</td></tr>';
     toast('Erro ao carregar produtos', 'erro');
   }
 }
@@ -30,10 +32,16 @@ async function carregarProdutos() {
 function parseCSV(texto) {
   const linhas = texto.split(/\r?\n/).filter(l => l.trim());
   if (linhas.length < 2) return [];
+  
   const cabecalhos = parseLinha(linhas[0]);
+  cabecalhosReais = cabecalhos; // guarda para debug
+  
+  console.log('=== CABEÇALHOS REAIS DA PLANILHA ===');
+  console.log(cabecalhos);
+  
   return linhas.slice(1).map((l, i) => {
     const cols = parseLinha(l);
-    const obj = { _linha: i + 2 }; // linha na planilha (1-based + header)
+    const obj = { _linha: i + 2 };
     cabecalhos.forEach((h, idx) => {
       obj[h] = cols[idx] || '';
     });
@@ -53,6 +61,47 @@ function parseLinha(linha) {
   return res;
 }
 
+// ============ NORMALIZAÇÃO DE NOMES ============
+function normalizar(s) {
+  return String(s || '')
+    .toLowerCase()
+    .normalize('NFD').replace(/[\u0300-\u036f]/g, '') // remove acentos
+    .replace(/[^a-z0-9]/g, '') // remove espaços e símbolos
+    .trim();
+}
+
+function buscarCampo(produto, nomesPossiveis) {
+  // tenta cada nome possível (normalizado) contra cada chave real do produto
+  for (const chave of Object.keys(produto)) {
+    if (chave.startsWith('_')) continue;
+    const chaveNorm = normalizar(chave);
+    for (const nome of nomesPossiveis) {
+      if (chaveNorm === normalizar(nome)) {
+        return produto[chave];
+      }
+    }
+  }
+  return '';
+}
+
+// Mapeamento flexível: cada campo aceita várias variações
+const MAPEAMENTO = {
+  nome:         ['Nome', 'nome', 'titulo', 'título', 'product', 'produto'],
+  descricao:    ['Descricao', 'Descrição', 'descricao', 'desc', 'description'],
+  precoOriginal:['Preço Original', 'Preco Original', 'precooriginal', 'preco_original', 'preco de', 'precode', 'precoantigo', 'preco antigo'],
+  precoPromo:   ['Preço Promocional', 'Preco Promocional', 'precopromo', 'preco_promo', 'preco', 'Preço', 'Preco', 'valor', 'precofinal', 'preco final'],
+  link:         ['Link', 'link', 'url', 'URL', 'href', 'linkproduto', 'link produto'],
+  imagem:       ['Imagem', 'imagem', 'img', 'foto', 'Foto', 'image', 'Image', 'urlimagem', 'url imagem'],
+  categoria:    ['Categoria', 'categoria', 'cat', 'category', 'grupo'],
+  loja:         ['Loja', 'loja', 'store', 'origem', 'marca', 'Marketplace'],
+  destaque:     ['Destaque', 'destaque', 'featured', 'destacado', 'emdestaque'],
+  ativo:        ['Ativo', 'ativo', 'status', 'Status', 'active', 'ativo?', 'sim', 'publicado']
+};
+
+function getCampo(produto, campo) {
+  return buscarCampo(produto, MAPEAMENTO[campo] || [campo]);
+}
+
 // ============ RENDERIZAR ============
 function renderizarTabela() {
   const busca = document.getElementById('busca').value.toLowerCase();
@@ -60,10 +109,11 @@ function renderizarTabela() {
   const corpo = document.getElementById('corpoTabela');
 
   const filtrados = produtos.filter(p => {
-    const nome = (p.Nome || p.nome || '').toLowerCase();
-    const cat = (p.Categoria || p.categoria || '').toLowerCase();
+    const nome = getCampo(p, 'nome').toLowerCase();
+    const cat = getCampo(p, 'categoria').toLowerCase();
     const matchBusca = !busca || nome.includes(busca) || cat.includes(busca);
-    const matchStatus = !filtro || (p.Ativo || p.ativo || '') === filtro;
+    const ativo = getCampo(p, 'ativo');
+    const matchStatus = !filtro || ativo === filtro;
     return matchBusca && matchStatus;
   });
 
@@ -73,24 +123,25 @@ function renderizarTabela() {
   }
 
   corpo.innerHTML = filtrados.map(p => {
-    const nome = p.Nome || p.nome || '(sem nome)';
-    const img = p.Imagem || p.imagem || '';
-    const cat = p.Categoria || p.categoria || '-';
-    const preco = p['Preço Promocional'] || p.precoPromo || p.Preco || '-';
-    const destaque = p.Destaque || p.destaque || 'Não';
-    const ativo = p.Ativo || p.ativo || 'Sim';
+    const nome = getCampo(p, 'nome') || '(sem nome)';
+    const img = getCampo(p, 'imagem') || '';
+    const cat = getCampo(p, 'categoria') || '-';
+    const preco = getCampo(p, 'precoPromo') || getCampo(p, 'precoOriginal') || '-';
+    const destaque = getCampo(p, 'destaque') || 'Não';
+    const ativo = getCampo(p, 'ativo') || 'Sim';
+    
     return `
       <tr>
-        <td>${img ? `<img src="${img}" alt="">` : '—'}</td>
+        <td>${img ? `<img src="${img}" alt="" onerror="this.style.display='none'">` : '—'}</td>
         <td><strong>${escapeHtml(nome)}</strong></td>
         <td>${escapeHtml(cat)}</td>
         <td>R$ ${escapeHtml(preco)}</td>
         <td><span class="badge badge-${destaque === 'Sim' ? 'destaque' : 'nao'}">${destaque}</span></td>
         <td><span class="badge badge-${ativo === 'Sim' ? 'sim' : 'nao'}">${ativo}</span></td>
-<td class="acoes">
-  <button class="btn btn-sm btn-icono" title="Editar produto" onclick="editar(${p._linha})">✏️</button>
-  <button class="btn btn-sm btn-icono btn-danger" title="Excluir produto" onclick="excluir(${p._linha})">🗑️</button>
-</td>
+        <td class="acoes">
+          <button class="btn btn-sm btn-icono" title="Editar produto" onclick="editar(${p._linha})">✏️</button>
+          <button class="btn btn-sm btn-icono btn-danger" title="Excluir produto" onclick="excluir(${p._linha})">️</button>
+        </td>
       </tr>
     `;
   }).join('');
@@ -100,6 +151,27 @@ function escapeHtml(s) {
   return String(s).replace(/[&<>"']/g, c => ({
     '&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'
   }[c]));
+}
+
+// ============ PAINEL DE DEBUG ============
+function mostrarDebugCabecalhos() {
+  // Remove painel anterior se existir
+  const anterior = document.getElementById('painelDebug');
+  if (anterior) anterior.remove();
+  
+  const painel = document.createElement('div');
+  painel.id = 'painelDebug';
+  painel.style.cssText = 'margin:20px 30px;padding:15px;background:#fff3cd;border:1px solid #ffc107;border-radius:8px;font-size:13px;font-family:monospace;';
+  
+  painel.innerHTML = `
+    <strong>🔍 Debug — Colunas detectadas na planilha:</strong><br>
+    <code>${cabecalhosReais.join(' | ')}</code><br><br>
+    <strong>Primeiro produto (dados brutos):</strong><br>
+    <pre style="margin:5px 0;white-space:pre-wrap;">${JSON.stringify(produtos[0] || {}, null, 2)}</pre>
+    <button onclick="this.parentElement.remove()" style="margin-top:8px;padding:4px 10px;border:none;background:#ffc107;border-radius:4px;cursor:pointer;">✕ Fechar</button>
+  `;
+  
+  document.querySelector('.admin-main').insertBefore(painel, document.getElementById('tabelaWrap'));
 }
 
 // ============ MODAL ============
@@ -126,16 +198,16 @@ function editar(linha) {
   produtoEditando = p;
   document.getElementById('modalTitulo').textContent = 'Editar Produto';
   document.getElementById('campoLinha').value = linha;
-  document.getElementById('nome').value = p.Nome || p.nome || '';
-  document.getElementById('descricao').value = p.Descricao || p.descricao || '';
-  document.getElementById('precoOriginal').value = p['Preço Original'] || p.precoOriginal || '';
-  document.getElementById('precoPromo').value = p['Preço Promocional'] || p.precoPromo || p.Preco || '';
-  document.getElementById('link').value = p.Link || p.link || '';
-  document.getElementById('imagem').value = p.Imagem || p.imagem || '';
-  document.getElementById('categoria').value = p.Categoria || p.categoria || '';
-  document.getElementById('loja').value = p.Loja || p.loja || '';
-  document.getElementById('destaque').value = p.Destaque || p.destaque || 'Não';
-  document.getElementById('ativo').value = p.Ativo || p.ativo || 'Sim';
+  document.getElementById('nome').value = getCampo(p, 'nome') || '';
+  document.getElementById('descricao').value = getCampo(p, 'descricao') || '';
+  document.getElementById('precoOriginal').value = getCampo(p, 'precoOriginal') || '';
+  document.getElementById('precoPromo').value = getCampo(p, 'precoPromo') || '';
+  document.getElementById('link').value = getCampo(p, 'link') || '';
+  document.getElementById('imagem').value = getCampo(p, 'imagem') || '';
+  document.getElementById('categoria').value = getCampo(p, 'categoria') || '';
+  document.getElementById('loja').value = getCampo(p, 'loja') || '';
+  document.getElementById('destaque').value = getCampo(p, 'destaque') || 'Não';
+  document.getElementById('ativo').value = getCampo(p, 'ativo') || 'Sim';
   abrirModal();
 }
 
@@ -162,7 +234,7 @@ document.getElementById('formProduto').addEventListener('submit', async (e) => {
 
   try {
     toast('Salvando...', '');
-    const resp = await fetch(URL_GRAVAR_PRODUTOS, {
+    await fetch(URL_GRAVAR_PRODUTOS, {
       method: 'POST',
       mode: 'no-cors',
       headers: { 'Content-Type': 'text/plain' },
