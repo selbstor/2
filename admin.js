@@ -1,6 +1,5 @@
 // ============================================
-// Gerenciador de Produtos — Achadinhos (v3)
-// Mapeamento EXATO da planilha real
+// Gerenciador de Produtos — com DIAGNÓSTICO
 // ============================================
 
 const URL_GRAVAR_PRODUTOS = ACHADINHOS.registrar_cliques;
@@ -8,19 +7,61 @@ const URL_GRAVAR_PRODUTOS = ACHADINHOS.registrar_cliques;
 let produtos = [];
 let produtoEditando = null;
 
-// ============ CARREGAR ============
+// ============ CARREGAR COM DIAGNÓSTICO ============
 async function carregarProdutos() {
   const corpo = document.getElementById('corpoTabela');
   corpo.innerHTML = '<tr><td colspan="7" class="vazio">Carregando...</td></tr>';
 
+  // Limpa diagnóstico anterior
+  const diagAnterior = document.getElementById('diagnostico');
+  if (diagAnterior) diagAnterior.remove();
+
+  const diag = document.createElement('div');
+  diag.id = 'diagnostico';
+  diag.style.cssText = 'margin:20px 30px;padding:15px;background:#1e1e1e;color:#0f0;border-radius:8px;font-family:monospace;font-size:12px;max-height:400px;overflow:auto;white-space:pre-wrap;';
+  document.querySelector('.admin-main').insertBefore(diag, document.getElementById('tabelaWrap'));
+
+  diag.textContent = '🔄 Iniciando carregamento...\n';
+  diag.textContent += '📡 URL: ' + ACHADINHOS.planilha_catalogo + '\n\n';
+
   try {
+    diag.textContent += '⏳ Fazendo fetch...\n';
     const resp = await fetch(ACHADINHOS.planilha_catalogo + '&t=' + Date.now());
+    
+    diag.textContent += '✅ Resposta recebida!\n';
+    diag.textContent += '   Status: ' + resp.status + ' ' + resp.statusText + '\n';
+    diag.textContent += '   Content-Type: ' + resp.headers.get('content-type') + '\n\n';
+
     const texto = await resp.text();
+    
+    diag.textContent += '📄 Tamanho do CSV: ' + texto.length + ' caracteres\n';
+    diag.textContent += '📄 Primeiras 500 letras do CSV:\n';
+    diag.textContent += '---\n' + texto.substring(0, 500) + '\n---\n\n';
+
+    if (texto.length < 10) {
+      diag.textContent += '❌ CSV vazio ou muito curto!\n';
+      diag.textContent += '   Possível causa: planilha não publicada ou gid errado.\n';
+      corpo.innerHTML = '<tr><td colspan="7" class="vazio">CSV vazio. Veja o diagnóstico acima.</td></tr>';
+      return;
+    }
+
     produtos = parseCSV(texto);
+    
+    diag.textContent += '📊 Produtos parseados: ' + produtos.length + '\n';
+    if (produtos.length > 0) {
+      diag.textContent += '📋 Primeiro produto (bruto):\n';
+      diag.textContent += JSON.stringify(produtos[0], null, 2) + '\n\n';
+      diag.textContent += '️ Chaves detectadas: ' + Object.keys(produtos[0]).filter(k=>!k.startsWith('_')).join(', ') + '\n';
+    }
+
     renderizarTabela();
+    
+    diag.textContent += '\n✅ Carregamento concluído!\n';
+
   } catch (e) {
-    corpo.innerHTML = '<tr><td colspan="7" class="vazio">❌ Erro: ' + e.message + '</td></tr>';
-    toast('Erro ao carregar', 'erro');
+    diag.textContent += '❌ ERRO: ' + e.message + '\n';
+    diag.textContent += '   Stack: ' + e.stack + '\n';
+    corpo.innerHTML = '<tr><td colspan="7" class="vazio">Erro: ' + e.message + '</td></tr>';
   }
 }
 
@@ -29,7 +70,7 @@ function parseCSV(texto) {
   if (linhas.length < 2) return [];
 
   const cabecalhos = parseLinha(linhas[0]);
-  console.log('Cabeçalhos reais:', cabecalhos);
+  console.log('Cabeçalhos:', cabecalhos);
 
   return linhas.slice(1).map((l, i) => {
     const cols = parseLinha(l);
@@ -51,14 +92,14 @@ function parseLinha(linha) {
   return res;
 }
 
-// ============ HELPER: buscar campo ignorando maiúsculas/acentos ============
+// ============ HELPER ============
 function get(p, ...nomes) {
   for (const nome of nomes) {
     for (const chave of Object.keys(p)) {
       if (chave.startsWith('_')) continue;
-      if (chave.toLowerCase().replace(/[^a-z0-9]/g,'') === nome.toLowerCase().replace(/[^a-z0-9]/g,'')) {
-        return p[chave];
-      }
+      const normChave = chave.toLowerCase().replace(/[^a-z0-9]/g,'');
+      const normNome = nome.toLowerCase().replace(/[^a-z0-9]/g,'');
+      if (normChave === normNome) return p[chave];
     }
   }
   return '';
@@ -86,7 +127,7 @@ function renderizarTabela() {
 
   corpo.innerHTML = filtrados.map(p => {
     const nome = get(p, 'Nome') || '(sem nome)';
-    const img = get(p, 'Imagem 1') || '';
+    const img = get(p, 'Imagem 1') || get(p, 'Imagem') || '';
     const cat = get(p, 'Categoria') || '-';
     const preco = get(p, 'Preço Promocional') || get(p, 'Preço') || '-';
     const destaque = get(p, 'Destaque') || 'Não';
