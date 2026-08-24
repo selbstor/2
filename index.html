@@ -504,18 +504,9 @@
           categoria: (row[3] || '').trim(),
           subcategoria: (row[4] || '').trim(),
           nome: (row[5] || '').trim(),
-          descricao: (row[6] || '').trim(),
-          preco: parsePrecoBR(row[7]),
-          precoPromo: row[8] ? (parsePrecoBR(row[8]) || null) : null,
-          cupom: (row[9] || '').trim(),
           validade: parseDataBR(row[10]),
           linkAfiliado: (row[11] || '').trim(),
-          textoBotao: (row[12] || '').trim(),
-          video: (row[13] || '').trim(),
           img1: fixImg((row[14] || '').trim()),
-          img2: fixImg((row[15] || '').trim()),
-          img3: fixImg((row[16] || '').trim()),
-          img4: fixImg((row[17] || '').trim()),
           ordem: parseInt(row[18]) || 9999,
           destaque: row.length > 19 && (row[19] || '').trim().toUpperCase() === 'SIM',
         });
@@ -722,16 +713,6 @@
       } else {
         priceEl.style.display = 'none';
       }
-      document.getElementById("modalDesc").textContent = currentProduct.descricao || '';
-      document.getElementById('modalCoupon').innerHTML = currentProduct.cupom
-        ? '<div class="coupon-box"><div><div class="coupon-label">Cupom</div><div class="coupon-code">' + currentProduct.cupom + '</div></div><button class="coupon-copy" id="btnCopyCoupon" onclick="copyCoupon()">Copiar</button></div>'
-        : '';
-      var embedUrl = ytEmbed(currentProduct.video);
-      document.getElementById('modalVideo').innerHTML = embedUrl ? '<div class="video-embed"><iframe src="' + embedUrl + '" loading="lazy" allowfullscreen></iframe></div>' : '';
-      document.getElementById('modalCta').textContent = currentProduct.textoBotao || 'Ver oferta →';
-      var note = document.getElementById('modalPriceNote');
-      note.textContent = CONFIG.avisoPrecos || '';
-      note.classList.toggle('show', currentProduct.preco > 0);
       
       document.getElementById("productModal").classList.add("open");
       document.body.style.overflow = "hidden";
