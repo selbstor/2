@@ -19,11 +19,6 @@ async function carregarProdutos() {
     let texto = await resp.text();
     if (texto.charCodeAt(0) === 0xFEFF) texto = texto.slice(1);
     produtos = parseCSV(texto);
-    console.log('✅ Produtos carregados:', produtos.length);
-    if (produtos.length > 0) {
-      console.log('📋 Primeiro produto:', produtos[0]);
-      console.log('🔑 Chaves disponíveis:', Object.keys(produtos[0]));
-    }
     renderizarTabela();
   } catch (e) {
     console.error('Erro:', e);
@@ -45,7 +40,6 @@ function parseCSV(texto) {
   }
   if (indiceCabecalho === -1) indiceCabecalho = 0;
   const cabecalhos = parseLinhaCSV(linhas[indiceCabecalho]);
-  console.log('📋 Cabeçalhos encontrados:', cabecalhos);
   return linhas.slice(indiceCabecalho + 1)
     .filter(l => l.trim().length > 0)
     .map((l, i) => {
@@ -89,7 +83,6 @@ function parseLinhaCSV(linha) {
   return res;
 }
 
-// ============ BUSCA NORMALIZADA ============
 function get(p, ...nomes) {
   for (const nome of nomes) {
     for (const chave of Object.keys(p)) {
@@ -102,22 +95,7 @@ function get(p, ...nomes) {
   return '';
 }
 
-// ============ BUSCAR IMAGEM (FUNÇÃO DEDICADA) ============
-function getImagem(p) {
-  // Tenta encontrar em várias variações possíveis do nome da coluna
-  const possiveisNomes = ['Imagem 1', 'Imagem', 'imagem1', 'URL_IMAGEM', 'Foto', 'foto', 'img'];
-  for (const nome of possiveisNomes) {
-    const valor = get(p, nome);
-    if (valor && valor.trim() !== '') {
-      console.log('✅ Imagem encontrada em "' + nome + '":', valor.substring(0, 50) + '...');
-      return valor.trim();
-    }
-  }
-  console.log('⚠️ Nenhuma imagem encontrada para:', get(p, 'Nome'));
-  return '';
-}
-
-// ============ ESCAPE HTML (✅ CORRIGIDO - c => sem espaço) ============
+// ============ ESCAPE HTML (✅ CORRIGIDO) ============
 function escapeHtml(s) {
   if (s === null || s === undefined) return '';
   return String(s).replace(/[&<>"']/g, c => ({
@@ -148,23 +126,16 @@ function renderizarTabela() {
     return;
   }
   
-  corpo.innerHTML = filtrados.map((p, index) => {
+  corpo.innerHTML = filtrados.map(p => {
     const nome = get(p, 'Nome') || '(sem nome)';
-    const img = getImagem(p); // ✅ Usa função dedicada
+    const img = (get(p, 'Imagem 1', 'Imagem') || '').trim();
     const cat = get(p, 'Categoria') || '-';
     const destaque = get(p, 'Destaque') || 'Não';
     const ativo = get(p, 'Ativo') || 'Sim';
-    
-    // Debug apenas no primeiro produto
-    if (index === 0) {
-      console.log('🔍 Renderizando primeiro produto:', nome);
-      console.log('️ URL da imagem:', img);
-    }
-    
     const imgHtml = img
-      ? `<img src="${escapeHtml(img)}" alt="" onerror="console.error('Erro ao carregar:', this.src); this.onerror=null; this.parentElement.innerHTML='❌';">`
+      ? `<img src="${escapeHtml(img)}" alt="" onerror="this.style.display='none'">`
       : '—';
-      
+    
     return `
       <tr>
         <td>${imgHtml}</td>
@@ -173,8 +144,8 @@ function renderizarTabela() {
         <td><span class="badge badge-${destaque === 'Sim' ? 'destaque' : 'nao'}">${destaque}</span></td>
         <td><span class="badge badge-${ativo === 'Sim' ? 'sim' : 'nao'}">${ativo}</span></td>
         <td class="acoes">
-          <button class="btn btn-sm btn-icono" title="Editar produto" onclick="editar(${p._linha})">️</button>
-          <button class="btn btn-sm btn-icono" title="Excluir produto" onclick="excluir(${p._linha})">️</button>
+          <button class="btn btn-sm btn-icono" title="Editar produto" onclick="editar(${p._linha})">✏️</button>
+          <button class="btn btn-sm btn-icono" title="Excluir produto" onclick="excluir(${p._linha})">🗑️</button>
         </td>
       </tr>
     `;
@@ -208,7 +179,11 @@ function editar(linha) {
   document.getElementById('subcategoria').value = get(p, 'Subcategoria');
   document.getElementById('validade').value = get(p, 'Validade da oferta');
   document.getElementById('link').value = get(p, 'Link de Afiliado', 'Link');
-  document.getElementById('imagem1').value = getImagem(p); // ✅ Usa função dedicada
+  document.getElementById('textoBotao').value = get(p, 'Texto do Botão');
+  document.getElementById('imagem1').value = get(p, 'Imagem 1', 'Imagem');
+  document.getElementById('imagem2').value = get(p, 'Imagem 2');
+  document.getElementById('imagem3').value = get(p, 'Imagem 3');
+  document.getElementById('imagem4').value = get(p, 'Imagem 4');
   document.getElementById('ordem').value = get(p, 'Ordem') || '0';
   document.getElementById('destaque').value = get(p, 'Destaque') || 'Não';
   document.getElementById('ativo').value = get(p, 'Ativo') || 'Sim';
@@ -228,7 +203,11 @@ document.getElementById('formProduto').addEventListener('submit', async (e) => {
     'Nome': document.getElementById('nome').value.trim(),
     'Validade da oferta': document.getElementById('validade').value.trim(),
     'Link de Afiliado': document.getElementById('link').value.trim(),
+    'Texto do Botão': document.getElementById('textoBotao').value.trim(),
     'Imagem 1': document.getElementById('imagem1').value.trim(),
+    'Imagem 2': document.getElementById('imagem2').value.trim(),
+    'Imagem 3': document.getElementById('imagem3').value.trim(),
+    'Imagem 4': document.getElementById('imagem4').value.trim(),
     'Ordem': document.getElementById('ordem').value.trim(),
     'Destaque': document.getElementById('destaque').value,
   };
@@ -239,38 +218,31 @@ document.getElementById('formProduto').addEventListener('submit', async (e) => {
     produto: produto
   };
   
-  console.log('📤 Enviando dados:', dados);
-
   try {
     toast('💾 Salvando...', '');
     const urlEnvio = `${URL_GRAVAR_PRODUTOS}?data=${encodeURIComponent(JSON.stringify(dados))}`;
-    console.log('🔗 URL:', urlEnvio);
-    
     const resp = await fetch(urlEnvio, { method: 'GET' });
-    console.log('📥 Status:', resp.status);
-    
     const texto = await resp.text();
-    console.log('📥 Resposta:', texto);
     
     let resJson;
     try {
       resJson = JSON.parse(texto);
     } catch (parseErr) {
-      console.error('❌ Resposta inválida do servidor:', texto);
+      console.error('Resposta inválida:', texto);
       toast('❌ Servidor retornou resposta inválida.', 'erro');
       return;
     }
 
     if (resJson.ok) {
-      toast('✅ ' + (resJson.msg || 'Salvo com sucesso!'), 'sucesso');
+      toast('✅ ' + (resJson.msg || 'Salvo!'), 'sucesso');
       fecharModal();
       setTimeout(carregarProdutos, 1500);
     } else {
       toast('❌ Erro: ' + (resJson.msg || 'Desconhecido'), 'erro');
     }
   } catch (err) {
-    console.error(' Erro completo:', err);
-    toast(' Erro de conexão: ' + err.message, 'erro');
+    console.error(err);
+    toast('❌ Erro: ' + err.message, 'erro');
   }
 });
 
@@ -289,18 +261,18 @@ async function excluir(linha) {
     
     let resJson;
     try { resJson = JSON.parse(texto); } catch (err) {
-      toast('❌ Servidor retornou resposta inválida.', 'erro');
+      toast('❌ Resposta inválida', 'erro');
       return;
     }
 
     if (resJson.ok) {
-      toast('✅ Excluído com sucesso!', 'sucesso');
+      toast('✅ Excluído!', 'sucesso');
       setTimeout(carregarProdutos, 1500);
     } else {
-      toast('❌ Erro ao excluir', 'erro');
+      toast('❌ Erro: ' + resJson.msg, 'erro');
     }
   } catch (err) {
-    toast('❌ Erro de conexão.', 'erro');
+    toast(' Erro de conexão', 'erro');
   }
 }
 
