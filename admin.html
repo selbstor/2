@@ -30,16 +30,17 @@
   .badge-nao { background: #f8d7da; color: #721c24; }
   
   /* ✅ CSS PARA CENTRALIZAR OS BOTÕES DE AÇÃO */
-  .acoes { 
-    display: flex; 
-    gap: 5px; 
-    justify-content: center; 
-    align-items: center; 
-  }
-  td.acoes { 
-    text-align: center; 
-    vertical-align: middle; 
-  }
+ .acoes { 
+  display: flex; 
+  gap: 5px; 
+  justify-content: center; 
+  align-items: center;
+  height: 100%;
+}
+td.acoes { 
+  vertical-align: middle !important;
+  text-align: center;
+}
   
   .modal-overlay { position: fixed; inset: 0; background: rgba(0,0,0,0.5); display: flex; align-items: center; justify-content: center; z-index: 1000; padding: 20px; backdrop-filter: blur(4px); }
   .modal-overlay.oculto { display: none; }
