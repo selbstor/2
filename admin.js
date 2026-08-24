@@ -69,7 +69,7 @@ function get(p, ...nomes) {
   return '';
 }
 
-// ✅ FUNÇÃO CORRIGIDA (c => sem espaço, mapeamento correto)
+// ✅ ESCAPE HTML CORRIGIDO (SEM ERRO DE SINTAXE)
 function escapeHtml(s) {
   if (!s) return '';
   return String(s).replace(/[&<>"']/g, c => ({
@@ -94,31 +94,6 @@ function renderizarTabela() {
            (!filtro || ativo === filtro);
   });
 
-  if (!filtrados.length) {
-    corpo.innerHTML = '<tr><td colspan="6" class="vazio">Nenhum produto encontrado</td></tr>';
-    return;
-  }
-
-  corpo.innerHTML = filtrados.map(p => {
-    const nome = get(p, 'Nome') || 'Sem nome';
-    const img = (get(p, 'Imagem 1') || get(p, 'Imagem') || '').trim();
-    const cat = get(p, 'Categoria') || '-';
-    const destaque = get(p, 'Destaque') || 'Não';
-    const ativo = get(p, 'Ativo') || 'Sim';
-    
-    return `<tr>
-      <td>${img ? `<img src="${escapeHtml(img)}" onerror="this.style.display='none'">` : '—'}</td>
-      <td><strong>${escapeHtml(nome)}</strong></td>
-      <td>${escapeHtml(cat)}</td>
-      <td><span class="badge badge-${destaque==='Sim'?'destaque':'nao'}">${destaque}</span></td>
-      <td><span class="badge badge-${ativo==='Sim'?'sim':'nao'}">${ativo}</span></td>
-      <td class="acoes">
-        <button class="btn btn-sm btn-icono" onclick="editar(${p._linha})" style="cursor:pointer">✏️</button>
-        <button class="btn btn-sm btn-icono" onclick="excluir(${p._linha})" style="cursor:pointer">🗑️</button>
-      </td>
-    </tr>`;
-  }).join('');
-}
   if (!filtrados.length) {
     corpo.innerHTML = '<tr><td colspan="6" class="vazio">Nenhum produto encontrado</td></tr>';
     return;
@@ -172,7 +147,7 @@ function editar(linha) {
   abrirModal();
 }
 
-// ✅ SALVAR (Configurado APENAS para os campos que você manteve)
+// ✅ SALVAR (APENAS CAMPOS EXISTENTES)
 document.getElementById('formProduto').onsubmit = async (e) => {
   e.preventDefault();
   const linha = document.getElementById('campoLinha').value;
@@ -201,27 +176,27 @@ document.getElementById('formProduto').onsubmit = async (e) => {
     
     let json;
     try { json = JSON.parse(texto); } catch {
-      toast('Erro: resposta inválida do servidor', 'erro'); 
-      console.error('Resposta crua do servidor:', texto);
+      toast('Erro: resposta inválida', 'erro'); 
+      console.error('Resposta:', texto);
       return;
     }
     
     if (json.ok) { 
-      toast('Salvo com sucesso!', 'sucesso'); 
+      toast('Salvo!', 'sucesso'); 
       fecharModal(); 
       setTimeout(carregarProdutos, 1500); 
     } else { 
       toast('Erro: ' + json.msg, 'erro'); 
     }
   } catch (err) { 
-    toast('Erro de conexão: ' + err.message, 'erro'); 
+    toast('Erro: ' + err.message, 'erro'); 
     console.error(err);
   }
 };
 
 async function excluir(linha) {
   const p = produtos.find(x => x._linha === linha);
-  if (!confirm(`Excluir "${get(p,'Nome') || 'este produto'}"?`)) return;
+  if (!confirm(`Excluir "${get(p,'Nome')}"?`)) return;
   try {
     toast('Excluindo...');
     const url = `${URL_GRAVAR_PRODUTOS}?data=${encodeURIComponent(JSON.stringify({acao:'excluir',linha}))}`;
