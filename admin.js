@@ -1,33 +1,31 @@
 const URL_GRAVAR_PRODUTOS = ACHADINHOS.registrar_cliques;
-
 let produtos = [];
 let produtoEditando = null;
+let linhasSelecionadas = new Set();
 
 // ============ CARREGAR ============
 async function carregarProdutos() {
   const corpo = document.getElementById('corpoTabela');
-  corpo.innerHTML = '<tr><td colspan="6" class="vazio">Carregando produtos...</td></tr>';
-
+  corpo.innerHTML = '<tr><td colspan="7" class="vazio">Carregando produtos...</td></tr>';
   try {
     const resp = await fetch(ACHADINHOS.planilha_catalogo + '&t=' + Date.now(), {
       method: 'GET',
       mode: 'cors',
       cache: 'no-cache'
     });
-
     if (!resp.ok) {
-      corpo.innerHTML = `<tr><td colspan="6" class="vazio">Erro HTTP ${resp.status} ao carregar planilha.</td></tr>`;
+      corpo.innerHTML = `<tr><td colspan="7" class="vazio">Erro HTTP ${resp.status} ao carregar planilha.</td></tr>`;
       return;
     }
-
     let texto = await resp.text();
     if (texto.charCodeAt(0) === 0xFEFF) texto = texto.slice(1);
-
     produtos = parseCSV(texto);
+    linhasSelecionadas.clear();
+    atualizarCheckboxTodos();
     renderizarTabela();
   } catch (e) {
     console.error('Erro:', e);
-    corpo.innerHTML = `<tr><td colspan="6" class="vazio">Erro de conexão.</td></tr>`;
+    corpo.innerHTML = `<tr><td colspan="7" class="vazio">Erro de conexão.</td></tr>`;
   }
 }
 
@@ -35,7 +33,6 @@ async function carregarProdutos() {
 function parseCSV(texto) {
   const linhas = texto.split(/\r?\n/);
   if (linhas.length < 2) return [];
-
   let indiceCabecalho = -1;
   for (let i = 0; i < linhas.length; i++) {
     const l = linhas[i].toLowerCase();
@@ -44,10 +41,8 @@ function parseCSV(texto) {
       break;
     }
   }
-
   if (indiceCabecalho === -1) indiceCabecalho = 0;
   const cabecalhos = parseLinhaCSV(linhas[indiceCabecalho]);
-
   return linhas.slice(indiceCabecalho + 1)
     .filter(l => l.trim().length > 0)
     .map((l, i) => {
@@ -64,11 +59,9 @@ function parseLinhaCSV(linha) {
   const res = [];
   let atual = '';
   let aspas = false;
-
   for (let i = 0; i < linha.length; i++) {
     const c = linha[i];
     const proximo = linha[i + 1];
-
     if (aspas) {
       if (c === '"' && proximo === '"') {
         atual += '"';
@@ -106,36 +99,157 @@ function get(p, ...nomes) {
   return '';
 }
 
+// ============ ESCAPE HTML (CORRIGIDO) ============
+function escapeHtml(s) {
+  if (s === null || s === undefined) return '';
+  return String(s).replace(/[&<>"']/g, c => ({
+    '&': '&amp;',
+    '<': '&lt;',
+    '>': '&gt;',
+    '"': '&quot;',
+    "'": '&#39;'
+  }[c]));
+}
+
+// ============ CHECKBOXES ============
+function toggleTodos() {
+  const checkboxTodos = document.getElementById('checkboxTodos');
+  const checkboxes = document.querySelectorAll('.checkbox-produto');
+  
+  if (checkboxTodos.checked) {
+    checkboxes.forEach(cb => {
+      cb.checked = true;
+      linhasSelecionadas.add(parseInt(cb.dataset.linha));
+    });
+  } else {
+    checkboxes.forEach(cb => {
+      cb.checked = false;
+      linhasSelecionadas.delete(parseInt(cb.dataset.linha));
+    });
+  }
+  atualizarContador();
+}
+
+function toggleSelecao(linha) {
+  if (linhasSelecionadas.has(linha)) {
+    linhasSelecionadas.delete(linha);
+  } else {
+    linhasSelecionadas.add(linha);
+  }
+  atualizarContador();
+  atualizarCheckboxTodos();
+}
+
+function atualizarCheckboxTodos() {
+  const checkboxTodos = document.getElementById('checkboxTodos');
+  const checkboxes = document.querySelectorAll('.checkbox-produto');
+  const todosMarcados = checkboxes.length > 0 && 
+    Array.from(checkboxes).every(cb => cb.checked);
+  checkboxTodos.checked = todosMarcados;
+}
+
+function atualizarContador() {
+  const contador = document.getElementById('contadorSelecionados');
+  const btnExcluir = document.getElementById('btnExcluirSelecionados');
+  const numSelecionados = document.getElementById('numSelecionados');
+  const total = linhasSelecionadas.size;
+  
+  numSelecionados.textContent = total;
+  
+  if (total > 0) {
+    contador.classList.add('visivel');
+    btnExcluir.classList.add('visivel');
+  } else {
+    contador.classList.remove('visivel');
+    btnExcluir.classList.remove('visivel');
+  }
+}
+
+// ============ EXCLUIR SELECIONADOS ============
+async function excluirSelecionados() {
+  if (linhasSelecionadas.size === 0) {
+    toast('️ Nenhum produto selecionado', 'erro');
+    return;
+  }
+  
+  if (!confirm(`Deseja realmente excluir ${linhasSelecionadas.size} produto(s) selecionado(s)?`)) {
+    return;
+  }
+  
+  try {
+    toast(`Excluindo ${linhasSelecionadas.size} produto(s)...`, '');
+    
+    const linhasArray = Array.from(linhasSelecionadas);
+    let sucesso = 0;
+    let erros = 0;
+    
+    for (const linha of linhasArray) {
+      try {
+        const dados = { acao: 'excluir', linha: linha };
+        const urlEnvio = `${URL_GRAVAR_PRODUTOS}&data=${encodeURIComponent(JSON.stringify(dados))}`;
+        const resp = await fetch(urlEnvio, { method: 'GET' });
+        const resJson = await resp.json();
+        if (resJson.ok) {
+          sucesso++;
+        } else {
+          erros++;
+        }
+      } catch (err) {
+        console.error('Erro ao excluir linha', linha, err);
+        erros++;
+      }
+    }
+    
+    if (sucesso > 0) {
+      toast(`✅ ${sucesso} produto(s) excluído(s) com sucesso!`, 'sucesso');
+      linhasSelecionadas.clear();
+      atualizarContador();
+      setTimeout(carregarProdutos, 1500);
+    } else {
+      toast(`❌ Erro ao excluir produtos`, 'erro');
+    }
+  } catch (err) {
+    toast('❌ Erro de conexão.', 'erro');
+  }
+}
+
 // ============ RENDERIZAR TABELA ============
 function renderizarTabela() {
   const busca = document.getElementById('busca').value.toLowerCase();
   const filtro = document.getElementById('filtroStatus').value;
   const corpo = document.getElementById('corpoTabela');
-
   const filtrados = produtos.filter(p => {
-    const nome = get(p, 'Nome').toLowerCase();
-    const cat = get(p, 'Categoria').toLowerCase();
+    const nome = (get(p, 'Nome') || '').toLowerCase();
+    const cat = (get(p, 'Categoria') || '').toLowerCase();
     const ativo = get(p, 'Ativo');
     const matchBusca = !busca || nome.includes(busca) || cat.includes(busca);
     const matchStatus = !filtro || ativo === filtro;
     return matchBusca && matchStatus;
   });
-
   if (filtrados.length === 0) {
-    corpo.innerHTML = '<tr><td colspan="6" class="vazio">Nenhum produto encontrado</td></tr>';
+    corpo.innerHTML = '<tr><td colspan="7" class="vazio">Nenhum produto encontrado</td></tr>';
     return;
   }
-
   corpo.innerHTML = filtrados.map(p => {
     const nome = get(p, 'Nome') || '(sem nome)';
-    const img = get(p, 'Imagem 1', 'Imagem') || '';
+    const img = (get(p, 'Imagem 1', 'Imagem') || '').trim();
     const cat = get(p, 'Categoria') || '-';
     const destaque = get(p, 'Destaque') || 'Não';
     const ativo = get(p, 'Ativo') || 'Sim';
-
+    const selecionado = linhasSelecionadas.has(p._linha) ? 'checked' : '';
+    const imgHtml = img
+      ? `<img src="${escapeHtml(img)}" alt="" onerror="this.style.display='none'">`
+      : '—';
     return `
       <tr>
-        <td>${img ? `<img src="${img}" alt="" onerror="this.style.display='none'">` : '—'}</td>
+        <td>
+          <input type="checkbox" 
+                 class="checkbox-produto" 
+                 data-linha="${p._linha}"
+                 ${selecionado}
+                 onchange="toggleSelecao(${p._linha})">
+        </td>
+        <td>${imgHtml}</td>
         <td><strong>${escapeHtml(nome)}</strong></td>
         <td>${escapeHtml(cat)}</td>
         <td><span class="badge badge-${destaque === 'Sim' ? 'destaque' : 'nao'}">${destaque}</span></td>
@@ -149,12 +263,6 @@ function renderizarTabela() {
   }).join('');
 }
 
-function escapeHtml(s) {
-  return String(s).replace(/[&<>"']/g, c => ({
-    '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;'
-  }[c]));
-}
-
 // ============ MODAL ============
 function abrirModal() { document.getElementById('modal').classList.remove('oculto'); }
 function fecharModal() {
@@ -162,7 +270,6 @@ function fecharModal() {
   document.getElementById('formProduto').reset();
   produtoEditando = null;
 }
-
 function novoProduto() {
   produtoEditando = null;
   document.getElementById('modalTitulo').textContent = 'Novo Produto';
@@ -170,27 +277,23 @@ function novoProduto() {
   document.getElementById('campoLinha').value = '';
   abrirModal();
 }
-
 function editar(linha) {
   const p = produtos.find(x => x._linha === linha);
   if (!p) return;
   produtoEditando = p;
   document.getElementById('modalTitulo').textContent = 'Editar Produto';
   document.getElementById('campoLinha').value = linha;
-
-  document.getElementById('ativo').value = get(p, 'Ativo') || 'Sim';
+  document.getElementById('nome').value = get(p, 'Nome');
   document.getElementById('tipo').value = get(p, 'Tipo');
   document.getElementById('plataforma').value = get(p, 'Plataforma');
   document.getElementById('categoria').value = get(p, 'Categoria');
   document.getElementById('subcategoria').value = get(p, 'Subcategoria');
-  document.getElementById('nome').value = get(p, 'Nome');
   document.getElementById('validade').value = get(p, 'Validade da oferta');
   document.getElementById('link').value = get(p, 'Link de Afiliado', 'Link');
   document.getElementById('imagem1').value = get(p, 'Imagem 1', 'Imagem');
-  document.getElementById('ordem').value = get(p, 'Ordem');
+  document.getElementById('ordem').value = get(p, 'Ordem') || '0';
   document.getElementById('destaque').value = get(p, 'Destaque') || 'Não';
-  
-
+  document.getElementById('ativo').value = get(p, 'Ativo') || 'Sim';
   abrirModal();
 }
 
@@ -198,7 +301,6 @@ function editar(linha) {
 document.getElementById('formProduto').addEventListener('submit', async (e) => {
   e.preventDefault();
   const linha = document.getElementById('campoLinha').value;
-
   const produto = {
     'Ativo': document.getElementById('ativo').value,
     'Tipo': document.getElementById('tipo').value.trim(),
@@ -212,20 +314,16 @@ document.getElementById('formProduto').addEventListener('submit', async (e) => {
     'Ordem': document.getElementById('ordem').value.trim(),
     'Destaque': document.getElementById('destaque').value,
   };
-
   const dados = {
     acao: linha ? 'editar' : 'novo',
     linha: linha ? parseInt(linha) : null,
     produto: produto
   };
-
   try {
     toast('Salvando alterações...', '');
-    const urlEnvio = `${URL_GRAVAR_PRODUTOS}?data=${encodeURIComponent(JSON.stringify(dados))}`;
-    
+    const urlEnvio = `${URL_GRAVAR_PRODUTOS}&data=${encodeURIComponent(JSON.stringify(dados))}`;
     const resp = await fetch(urlEnvio, { method: 'GET' });
     const resJson = await resp.json();
-
     if (resJson.ok) {
       toast('✅ ' + resJson.msg, 'sucesso');
       fecharModal();
@@ -239,23 +337,21 @@ document.getElementById('formProduto').addEventListener('submit', async (e) => {
   }
 });
 
-// ============ EXCLUIR ============
+// ============ EXCLUIR ÚNICO ============
 async function excluir(linha) {
   const p = produtos.find(x => x._linha === linha);
   const nomeProduto = p ? (get(p, 'Nome') || 'este produto') : 'este produto';
-
   if (!confirm(`Deseja realmente excluir:\n\n"${nomeProduto}"?`)) return;
-
   try {
     toast('Excluindo...', '');
     const dados = { acao: 'excluir', linha: linha };
-    const urlEnvio = `${URL_GRAVAR_PRODUTOS}?data=${encodeURIComponent(JSON.stringify(dados))}`;
-    
+    const urlEnvio = `${URL_GRAVAR_PRODUTOS}&data=${encodeURIComponent(JSON.stringify(dados))}`;
     const resp = await fetch(urlEnvio, { method: 'GET' });
     const resJson = await resp.json();
-
     if (resJson.ok) {
       toast('✅ Excluído com sucesso!', 'sucesso');
+      linhasSelecionadas.delete(linha);
+      atualizarContador();
       setTimeout(carregarProdutos, 1500);
     } else {
       toast('❌ Erro ao excluir', 'erro');
@@ -272,6 +368,7 @@ function toast(msg, tipo) {
   setTimeout(() => t.classList.add('oculto'), 3500);
 }
 
+// ============ EVENTOS ============
 document.getElementById('btnNovo').onclick = novoProduto;
 document.getElementById('btnRecarregar').onclick = carregarProdutos;
 document.getElementById('busca').oninput = renderizarTabela;
