@@ -188,21 +188,18 @@ function editar(linha) {
   produtoEditando = p;
   document.getElementById('modalTitulo').textContent = 'Editar Produto';
   document.getElementById('campoLinha').value = linha;
-  document.getElementById('nome').value = get(p, 'Nome') || '';
+  document.getElementById('ativo').value = get(p, 'Ativo') || 'Sim';
   document.getElementById('tipo').value = get(p, 'Tipo') || '';
   document.getElementById('plataforma').value = get(p, 'Plataforma') || '';
   document.getElementById('categoria').value = get(p, 'Categoria') || '';
   document.getElementById('subcategoria').value = get(p, 'Subcategoria') || '';
+  document.getElementById('nome').value = get(p, 'Nome') || '';
   document.getElementById('validade').value = get(p, 'Validade da oferta') || '';
   document.getElementById('link').value = get(p, 'Link de Afiliado', 'Link') || '';
-  document.getElementById('textoBotao').value = get(p, 'Texto do Botão') || '';
   document.getElementById('imagem1').value = get(p, 'Imagem 1', 'Imagem') || '';
-  document.getElementById('imagem2').value = get(p, 'Imagem 2') || '';
-  document.getElementById('imagem3').value = get(p, 'Imagem 3') || '';
-  document.getElementById('imagem4').value = get(p, 'Imagem 4') || '';
   document.getElementById('ordem').value = get(p, 'Ordem') || '0';
   document.getElementById('destaque').value = get(p, 'Destaque') || 'Não';
-  document.getElementById('ativo').value = get(p, 'Ativo') || 'Sim';
+
   
   console.log('✅ Modal preenchido, abrindo...');
   abrirModal();
@@ -223,9 +220,6 @@ document.getElementById('formProduto').addEventListener('submit', async (e) => {
     'Link de Afiliado': document.getElementById('link').value.trim(),
     'Texto do Botão': document.getElementById('textoBotao').value.trim(),
     'Imagem 1': document.getElementById('imagem1').value.trim(),
-    'Imagem 2': document.getElementById('imagem2').value.trim(),
-    'Imagem 3': document.getElementById('imagem3').value.trim(),
-    'Imagem 4': document.getElementById('imagem4').value.trim(),
     'Ordem': document.getElementById('ordem').value.trim(),
     'Destaque': document.getElementById('destaque').value,
   };
