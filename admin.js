@@ -1,18 +1,24 @@
 const URL_GRAVAR_PRODUTOS = ACHADINHOS.registrar_cliques;
 let produtos = [];
+let produtoEditando = null;
 
 async function carregarProdutos() {
   const corpo = document.getElementById('corpoTabela');
   corpo.innerHTML = '<tr><td colspan="6" class="vazio">Carregando produtos...</td></tr>';
   try {
-    const resp = await fetch(ACHADINHOS.planilha_catalogo + '&t=' + Date.now(), { method: 'GET', mode: 'cors', cache: 'no-cache' });
-    if (!resp.ok) throw new Error('HTTP ' + resp.status);
+    const resp = await fetch(ACHADINHOS.planilha_catalogo + '&t=' + Date.now(), {
+      method: 'GET', mode: 'cors', cache: 'no-cache'
+    });
+    if (!resp.ok) {
+      corpo.innerHTML = `<tr><td colspan="6" class="vazio">Erro HTTP ${resp.status}</td></tr>`;
+      return;
+    }
     let texto = await resp.text();
     if (texto.charCodeAt(0) === 0xFEFF) texto = texto.slice(1);
     produtos = parseCSV(texto);
     renderizarTabela();
   } catch (e) {
-    console.error('Erro ao carregar:', e);
+    console.error('Erro:', e);
     corpo.innerHTML = `<tr><td colspan="6" class="vazio">Erro: ${e.message}</td></tr>`;
   }
 }
@@ -22,7 +28,9 @@ function parseCSV(texto) {
   if (linhas.length < 2) return [];
   let idx = -1;
   for (let i = 0; i < linhas.length; i++) {
-    if (linhas[i].toLowerCase().includes('ativo') && linhas[i].toLowerCase().includes('nome')) { idx = i; break; }
+    if (linhas[i].toLowerCase().includes('ativo') && linhas[i].toLowerCase().includes('nome')) {
+      idx = i; break;
+    }
   }
   if (idx === -1) idx = 0;
   const cabecalhos = parseLinhaCSV(linhas[idx]);
@@ -63,6 +71,7 @@ function get(p, ...nomes) {
   return '';
 }
 
+// ✅ ESCAPE HTML CORRIGIDO (SEM ERRO DE SINTAXE)
 function escapeHtml(s) {
   if (!s) return '';
   return String(s).replace(/[&<>"']/g, c => ({
@@ -83,17 +92,18 @@ function renderizarTabela() {
     const nome = (get(p, 'Nome') || '').toLowerCase();
     const cat = (get(p, 'Categoria') || '').toLowerCase();
     const ativo = get(p, 'Ativo');
-    return (!busca || nome.includes(busca) || cat.includes(busca)) && (!filtro || ativo === filtro);
+    return (!busca || nome.includes(busca) || cat.includes(busca)) && 
+           (!filtro || ativo === filtro);
   });
 
   if (!filtrados.length) {
-    corpo.innerHTML = '<tr><td colspan="6" class="vazio">Nenhum produto encontrado</td></tr>';
+    corpo.innerHTML = '<tr><td colspan="6" class="vazio">Nenhum produto</td></tr>';
     return;
   }
 
   corpo.innerHTML = filtrados.map(p => {
     const nome = get(p, 'Nome') || 'Sem nome';
-    const img = (get(p, 'Imagem 1', 'Imagem') || '').trim();
+    const img = (get(p, 'Imagem 1') || get(p, 'Imagem') || '').trim();
     const cat = get(p, 'Categoria') || '-';
     const destaque = get(p, 'Destaque') || 'Não';
     const ativo = get(p, 'Ativo') || 'Sim';
@@ -105,8 +115,8 @@ function renderizarTabela() {
       <td><span class="badge badge-${destaque==='Sim'?'destaque':'nao'}">${destaque}</span></td>
       <td><span class="badge badge-${ativo==='Sim'?'sim':'nao'}">${ativo}</span></td>
       <td class="acoes">
-        <button class="btn btn-sm btn-icono" onclick="editar(${p._linha})" style="cursor:pointer; z-index:10;">✏️</button>
-        <button class="btn btn-sm btn-icono" onclick="excluir(${p._linha})" style="cursor:pointer; z-index:10;">🗑️</button>
+        <button class="btn btn-sm btn-icono" onclick="editar(${p._linha})" style="cursor:pointer">️</button>
+        <button class="btn btn-sm btn-icono" onclick="excluir(${p._linha})" style="cursor:pointer">🗑️</button>
       </td>
     </tr>`;
   }).join('');
@@ -165,7 +175,7 @@ document.getElementById('formProduto').onsubmit = async (e) => {
     const texto = await resp.text();
     let json;
     try { json = JSON.parse(texto); } catch {
-      toast('Erro: resposta inválida do servidor', 'erro'); return;
+      toast('Erro: resposta inválida', 'erro'); return;
     }
     if (json.ok) { toast('Salvo!', 'sucesso'); fecharModal(); setTimeout(carregarProdutos, 1500); }
     else toast('Erro: ' + json.msg, 'erro');
@@ -174,7 +184,7 @@ document.getElementById('formProduto').onsubmit = async (e) => {
 
 async function excluir(linha) {
   const p = produtos.find(x => x._linha === linha);
-  if (!confirm(`Excluir "${get(p,'Nome') || 'este produto'}"?`)) return;
+  if (!confirm(`Excluir "${get(p,'Nome')}"?`)) return;
   try {
     toast('Excluindo...');
     const url = `${URL_GRAVAR_PRODUTOS}?data=${encodeURIComponent(JSON.stringify({acao:'excluir',linha}))}`;
