@@ -8,7 +8,9 @@ async function carregarProdutos() {
   corpo.innerHTML = '<tr><td colspan="6" class="vazio">Carregando produtos...</td></tr>';
   try {
     const resp = await fetch(ACHADINHOS.planilha_catalogo + '&t=' + Date.now(), {
-      method: 'GET', mode: 'cors', cache: 'no-cache'
+      method: 'GET',
+      mode: 'cors',
+      cache: 'no-cache'
     });
     if (!resp.ok) {
       corpo.innerHTML = `<tr><td colspan="6" class="vazio">Erro HTTP ${resp.status} ao carregar planilha.</td></tr>`;
@@ -20,7 +22,7 @@ async function carregarProdutos() {
     renderizarTabela();
   } catch (e) {
     console.error('Erro:', e);
-    corpo.innerHTML = `<tr><td colspan="6" class="vazio">Erro de conexão: ${e.message}</td></tr>`;
+    corpo.innerHTML = `<tr><td colspan="6" class="vazio">Erro de conexão.</td></tr>`;
   }
 }
 
@@ -32,7 +34,8 @@ function parseCSV(texto) {
   for (let i = 0; i < linhas.length; i++) {
     const l = linhas[i].toLowerCase();
     if (l.includes('ativo') && l.includes('nome')) {
-      indiceCabecalho = i; break;
+      indiceCabecalho = i;
+      break;
     }
   }
   if (indiceCabecalho === -1) indiceCabecalho = 0;
@@ -51,24 +54,35 @@ function parseCSV(texto) {
 
 function parseLinhaCSV(linha) {
   const res = [];
-  let atual = '', aspas = false;
+  let atual = '';
+  let aspas = false;
   for (let i = 0; i < linha.length; i++) {
-    const c = linha[i], proximo = linha[i + 1];
+    const c = linha[i];
+    const proximo = linha[i + 1];
     if (aspas) {
-      if (c === '"' && proximo === '"') { atual += '"'; i++; }
-      else if (c === '"') { aspas = false; }
-      else { atual += c; }
+      if (c === '"' && proximo === '"') {
+        atual += '"';
+        i++;
+      } else if (c === '"') {
+        aspas = false;
+      } else {
+        atual += c;
+      }
     } else {
-      if (c === '"') { aspas = true; }
-      else if (c === ',') { res.push(atual.trim()); atual = ''; }
-      else { atual += c; }
+      if (c === '"') {
+        aspas = true;
+      } else if (c === ',') {
+        res.push(atual.trim());
+        atual = '';
+      } else {
+        atual += c;
+      }
     }
   }
   res.push(atual.trim());
   return res;
 }
 
-// ============ BUSCA NORMALIZADA ============
 function get(p, ...nomes) {
   for (const nome of nomes) {
     for (const chave of Object.keys(p)) {
@@ -81,7 +95,7 @@ function get(p, ...nomes) {
   return '';
 }
 
-// ============ ESCAPE HTML (✅ CORRIGIDO: c => em vez de c = >) ============
+// ============ ESCAPE HTML (✅ CORRIGIDO) ============
 function escapeHtml(s) {
   if (s === null || s === undefined) return '';
   return String(s).replace(/[&<>"']/g, c => ({
@@ -118,8 +132,9 @@ function renderizarTabela() {
     const cat = get(p, 'Categoria') || '-';
     const destaque = get(p, 'Destaque') || 'Não';
     const ativo = get(p, 'Ativo') || 'Sim';
-    const imgHtml = img ? `<img src="${escapeHtml(img)}" alt="" onerror="this.style.display='none'">` : '—';
-    
+    const imgHtml = img
+      ? `<img src="${escapeHtml(img)}" alt="" onerror="this.style.display='none'">`
+      : '—';
     return `
       <tr>
         <td>${imgHtml}</td>
@@ -128,8 +143,8 @@ function renderizarTabela() {
         <td><span class="badge badge-${destaque === 'Sim' ? 'destaque' : 'nao'}">${destaque}</span></td>
         <td><span class="badge badge-${ativo === 'Sim' ? 'sim' : 'nao'}">${ativo}</span></td>
         <td class="acoes">
-          <button class="btn btn-sm btn-icono" title="Editar" onclick="editar(${p._linha})">✏️</button>
-          <button class="btn btn-sm btn-icono" title="Excluir" onclick="excluir(${p._linha})">🗑️</button>
+          <button class="btn btn-sm btn-icono" title="Editar produto" onclick="editar(${p._linha})">✏️</button>
+          <button class="btn btn-sm btn-icono" title="Excluir produto" onclick="excluir(${p._linha})">🗑️</button>
         </td>
       </tr>
     `;
@@ -170,7 +185,7 @@ function editar(linha) {
   abrirModal();
 }
 
-// ============ SALVAR (✅ CORRIGIDO: Tratamento robusto de resposta) ============
+// ============ SALVAR (✅ CORRIGIDO COM TRATAMENTO DE ERRO) ============
 document.getElementById('formProduto').addEventListener('submit', async (e) => {
   e.preventDefault();
   const linha = document.getElementById('campoLinha').value;
@@ -193,19 +208,26 @@ document.getElementById('formProduto').addEventListener('submit', async (e) => {
     linha: linha ? parseInt(linha) : null,
     produto: produto
   };
+  
+  console.log('📤 Enviando dados:', dados);
 
   try {
-    toast('💾 Salvando...', '');
+    toast('💾 Salvando alterações...', '');
     const urlEnvio = `${URL_GRAVAR_PRODUTOS}?data=${encodeURIComponent(JSON.stringify(dados))}`;
+    console.log('🔗 URL:', urlEnvio);
+    
     const resp = await fetch(urlEnvio, { method: 'GET' });
+    console.log('📥 Status:', resp.status, resp.statusText);
+    
     const texto = await resp.text();
+    console.log('📥 Resposta:', texto);
     
     let resJson;
     try {
       resJson = JSON.parse(texto);
-    } catch (err) {
-      console.error('Resposta inválida do servidor:', texto);
-      toast('❌ Servidor retornou resposta inválida.', 'erro');
+    } catch (parseErr) {
+      console.error('❌ Resposta não é JSON válido:', texto);
+      toast('❌ Servidor retornou resposta inválida. Verifique o Apps Script.', 'erro');
       return;
     }
 
@@ -217,7 +239,7 @@ document.getElementById('formProduto').addEventListener('submit', async (e) => {
       toast('❌ Erro: ' + (resJson.msg || 'Desconhecido'), 'erro');
     }
   } catch (err) {
-    console.error('Erro completo:', err);
+    console.error('❌ Erro completo:', err);
     toast('❌ Erro de conexão: ' + err.message, 'erro');
   }
 });
@@ -227,7 +249,6 @@ async function excluir(linha) {
   const p = produtos.find(x => x._linha === linha);
   const nomeProduto = p ? (get(p, 'Nome') || 'este produto') : 'este produto';
   if (!confirm(`Deseja realmente excluir:\n\n"${nomeProduto}"?`)) return;
-  
   try {
     toast('Excluindo...', '');
     const dados = { acao: 'excluir', linha: linha };
@@ -236,11 +257,14 @@ async function excluir(linha) {
     const texto = await resp.text();
     
     let resJson;
-    try { resJson = JSON.parse(texto); } catch (err) {
+    try {
+      resJson = JSON.parse(texto);
+    } catch (parseErr) {
+      console.error('Resposta não é JSON:', texto);
       toast('❌ Servidor retornou resposta inválida.', 'erro');
       return;
     }
-
+    
     if (resJson.ok) {
       toast('✅ Excluído com sucesso!', 'sucesso');
       setTimeout(carregarProdutos, 1500);
