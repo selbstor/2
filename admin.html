@@ -4,273 +4,306 @@
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <title>Gerenciar Produtos — Selbstor|Achadinhos</title>
+<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
 <style>
   * { box-sizing: border-box; margin: 0; padding: 0; }
-  body {Im
-    font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
-    background: #f5f6fa; color: #2c3e50;
+  body {
+    font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+    background: #f5f7fa;
+    color: #333;
+    padding: 20px;
   }
-  .admin-header {
-    background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
-    color: white; padding: 20px 30px;
-    display: flex; justify-content: space-between; align-items: center;
-    box-shadow: 0 2px 10px rgba(0,0,0,.1);
+  .container { max-width: 1200px; margin: 0 auto; }
+  header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-bottom: 20px;
+    flex-wrap: wrap;
+    gap: 10px;
   }
-  .admin-header h1 { font-size: 1.5rem; }
-  .admin-main { padding: 20px 30px; max-width: 1400px; margin: 0 auto; }
-  .toolbar {
-    display: flex; gap: 10px; margin-bottom: 20px; flex-wrap: wrap;
-  }
-  .toolbar input, .toolbar select {
-    padding: 10px 14px; border: 1px solid #ddd; border-radius: 8px;
-    font-size: 14px; background: white;
-  }
-  .toolbar input { flex: 1; min-width: 200px; }
+  h1 { font-size: 1.6rem; color: #2c3e50; }
+  .acoes-topo { display: flex; gap: 10px; flex-wrap: wrap; }
   .btn {
-    padding: 10px 18px; border: none; border-radius: 8px;
-    background: white; color: #333; cursor: pointer;
-    font-size: 14px; font-weight: 500; transition: all .2s;
+    padding: 10px 18px;
+    border: none;
+    border-radius: 8px;
+    cursor: pointer;
+    font-weight: 600;
+    font-size: 0.9rem;
+    transition: all 0.2s;
   }
-  .btn:hover { background: #eee; }
-  .btn-primary { background: #667eea; color: white; }
-  .btn-primary:hover { background: #5568d3; }
+  .btn-primary { background: #3498db; color: white; }
+  .btn-primary:hover { background: #2980b9; }
+  .btn-secondary { background: #ecf0f1; color: #2c3e50; }
+  .btn-secondary:hover { background: #d5dbdb; }
   .btn-danger { background: #e74c3c; color: white; }
-  .btn-danger:hover { background: #c0392b; }
-  .btn-sm { padding: 6px 12px; font-size: 13px; }
-  .btn-icono {
-    width: 36px; height: 36px;
-    display: inline-flex; align-items: center; justify-content: center;
-    font-size: 16px; padding: 0; position: relative;
+  .btn-success { background: #27ae60; color: white; }
+  .btn-sm { padding: 6px 10px; font-size: 0.85rem; }
+  .btn-icono { background: transparent; padding: 4px 8px; }
+  .filtros {
+    display: flex;
+    gap: 10px;
+    margin-bottom: 20px;
+    flex-wrap: wrap;
+    background: white;
+    padding: 15px;
+    border-radius: 10px;
+    box-shadow: 0 2px 8px rgba(0,0,0,0.05);
   }
-  .btn-icono::after {
-    content: attr(title);
-    position: absolute; bottom: 120%; left: 50%;
-    transform: translateX(-50%);
-    background: #2c3e50; color: white;
-    padding: 5px 10px; border-radius: 6px;
-    font-size: 12px; white-space: nowrap;
-    opacity: 0; pointer-events: none;
-    transition: opacity .2s;
-    z-index: 10;
+  .filtros input, .filtros select {
+    padding: 8px 12px;
+    border: 1px solid #ddd;
+    border-radius: 6px;
+    font-size: 0.9rem;
   }
-  .btn-icono:hover::after { opacity: 1; }
-  .btn-icono.btn-danger::after { background: #e74c3c; }
-  .tabela-wrap {
-    background: white; border-radius: 12px; overflow: hidden;
-    box-shadow: 0 2px 10px rgba(0,0,0,.05);
+  .filtros input { flex: 1; min-width: 200px; }
+  table {
+    width: 100%;
+    border-collapse: collapse;
+    background: white;
+    border-radius: 10px;
+    overflow: hidden;
+    box-shadow: 0 2px 8px rgba(0,0,0,0.05);
   }
-  table { width: 100%; border-collapse: collapse; }
-  th {
-    background: #f8f9fa; padding: 14px; text-align: left;
-    font-size: 13px; text-transform: uppercase; color: #666;
-    border-bottom: 2px solid #eee;
+  th, td {
+    padding: 12px;
+    text-align: left;
+    border-bottom: 1px solid #eee;
   }
-  td { padding: 12px 14px; border-bottom: 1px solid #f0f0f0; font-size: 14px; }
-  tr:hover { background: #fafbff; }
-  td img {
-    width: 50px; height: 50px; object-fit: cover;
-    border-radius: 6px; background: #f0f0f0;
-  }
+  th { background: #f8f9fa; font-weight: 600; color: #555; font-size: 0.85rem; }
+  td img { width: 50px; height: 50px; object-fit: cover; border-radius: 6px; }
+  .vazio { text-align: center; padding: 30px; color: #888; }
   .badge {
-    display: inline-block; padding: 3px 10px; border-radius: 12px;
-    font-size: 12px; font-weight: 600;
+    padding: 4px 10px;
+    border-radius: 12px;
+    font-size: 0.75rem;
+    font-weight: 600;
   }
-  .badge-sim { background: #d4edda; color: #155724; }
+  .badge-sim, .badge-destaque { background: #d4edda; color: #155724; }
   .badge-nao { background: #f8d7da; color: #721c24; }
-  .badge-destaque { background: #fff3cd; color: #856404; }
-  .acoes { display: flex; gap: 6px; }
-  .vazio { text-align: center; padding: 40px; color: #999; }
-
+  .acoes { display: flex; gap: 5px; }
   /* Modal */
-  .modal {
-    position: fixed; inset: 0; background: rgba(0,0,0,.5);
-    display: flex; align-items: center; justify-content: center;
-    z-index: 1000; padding: 20px;
+  .modal-overlay {
+    position: fixed;
+    inset: 0;
+    background: rgba(0,0,0,0.5);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    z-index: 1000;
+    padding: 20px;
   }
-  .modal.oculto { display: none; }
-  .modal-conteudo {
-    background: white; border-radius: 12px; width: 100%; max-width: 600px;
-    max-height: 90vh; overflow-y: auto;
+  .modal-overlay.oculto { display: none; }
+  .modal {
+    background: white;
+    border-radius: 12px;
+    width: 100%;
+    max-width: 600px;
+    max-height: 90vh;
+    overflow-y: auto;
+    padding: 25px;
   }
   .modal-header {
-    padding: 20px 24px; border-bottom: 1px solid #eee;
-    display: flex; justify-content: space-between; align-items: center;
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-bottom: 20px;
   }
-  .btn-fechar {
-    background: none; border: none; font-size: 24px;
-    cursor: pointer; color: #999;
+  .modal-header h2 { font-size: 1.3rem; }
+  .fechar {
+    background: none;
+    border: none;
+    font-size: 1.5rem;
+    cursor: pointer;
+    color: #888;
   }
-  #formProduto { padding: 24px; }
-  .campo { margin-bottom: 16px; }
-  .campo label {
-    display: block; margin-bottom: 6px;
-    font-size: 13px; font-weight: 600; color: #555;
+  .form-grupo { margin-bottom: 15px; }
+  .form-grupo label {
+    display: block;
+    margin-bottom: 5px;
+    font-weight: 600;
+    font-size: 0.85rem;
+    color: #555;
   }
-  .campo input, .campo textarea, .campo select {
-    width: 100%; padding: 10px 12px;
-    border: 1px solid #ddd; border-radius: 8px;
-    font-size: 14px; font-family: inherit;
+  .form-grupo input, .form-grupo select {
+    width: 100%;
+    padding: 10px;
+    border: 1px solid #ddd;
+    border-radius: 6px;
+    font-size: 0.9rem;
   }
-  .campo input:focus, .campo textarea:focus, .campo select:focus {
-    outline: none; border-color: #667eea;
+  .form-linha { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; }
+  .form-secao {
+    background: #f8f9fa;
+    padding: 15px;
+    border-radius: 8px;
+    margin-bottom: 15px;
   }
-  .linha-dupla { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; }
-  .linha-tripla { display: grid; grid-template-columns: 1fr 1fr 1fr; gap: 12px; }
-  #formProduto h3 {
-    font-size: 14px; font-weight: 600; margin: 20px 0 10px;
-    padding-bottom: 6px; border-bottom: 1px solid #eee;
-    color: #667eea;
+  .form-secao h3 {
+    font-size: 0.95rem;
+    margin-bottom: 10px;
+    color: #2c3e50;
   }
-  .botoes-form {
-    display: flex; justify-content: flex-end; gap: 10px;
-    margin-top: 20px; padding-top: 20px; border-top: 1px solid #eee;
+  .form-acoes {
+    display: flex;
+    justify-content: flex-end;
+    gap: 10px;
+    margin-top: 20px;
   }
-
   /* Toast */
   .toast {
-    position: fixed; bottom: 30px; right: 30px;
-    background: #2c3e50; color: white;
-    padding: 14px 22px; border-radius: 8px;
-    box-shadow: 0 4px 12px rgba(0,0,0,.2);
-    z-index: 2000; animation: slideIn .3s;
+    position: fixed;
+    bottom: 20px;
+    right: 20px;
+    background: #333;
+    color: white;
+    padding: 12px 20px;
+    border-radius: 8px;
+    box-shadow: 0 4px 12px rgba(0,0,0,0.2);
+    z-index: 2000;
+    transition: all 0.3s;
   }
   .toast.sucesso { background: #27ae60; }
   .toast.erro { background: #e74c3c; }
-  .toast.oculto { display: none; }
-  @keyframes slideIn {
-    from { transform: translateY(20px); opacity: 0; }
-    to { transform: translateY(0); opacity: 1; }
-  }
-
-  @media (max-width: 700px) {
-    .admin-header { flex-direction: column; gap: 10px; align-items: stretch; }
-    .linha-dupla, .linha-tripla { grid-template-columns: 1fr; }
-    th:nth-child(1), td:nth-child(1) { display: none; }
-  }
+  .toast.oculto { opacity: 0; transform: translateY(20px); pointer-events: none; }
 </style>
 </head>
 <body>
-  <header class="admin-header">
+<div class="container">
+  <header>
     <h1>🛍️ Gerenciar Achadinhos</h1>
-    <button id="btnNovo" class="btn btn-primary">+ Novo Produto</button>
+    <div class="acoes-topo">
+      <button id="btnNovo" class="btn btn-primary">+ Novo Produto</button>
+      <button id="btnRecarregar" class="btn btn-secondary">🔄 Recarregar</button>
+    </div>
   </header>
 
-  <main class="admin-main">
-    <div class="toolbar">
-      <input type="text" id="busca" placeholder="🔍 Buscar produto...">
-      <select id="filtroStatus">
-        <option value="">Todos os status</option>
-        <option value="Sim">Ativos</option>
-        <option value="Não">Inativos</option>
-      </select>
-      <button id="btnRecarregar" class="btn">🔄 Recarregar</button>
+  <div class="filtros">
+    <input type="text" id="busca" placeholder="🔍 Buscar por nome ou categoria...">
+    <select id="filtroStatus">
+      <option value="">Todos os status</option>
+      <option value="Sim">Ativos</option>
+      <option value="Não">Inativos</option>
+    </select>
+  </div>
+
+  <table>
+    <thead>
+      <tr>
+        <th>Imagem</th>
+        <th>Nome</th>
+        <th>Categoria</th>
+        <th>Destaque</th>
+        <th>Status</th>
+        <th>Ações</th>
+      </tr>
+    </thead>
+    <tbody id="corpoTabela">
+      <tr><td colspan="6" class="vazio">Carregando produtos...</td></tr>
+    </tbody>
+  </table>
+</div>
+
+<!-- Modal -->
+<div id="modal" class="modal-overlay oculto">
+  <div class="modal">
+    <div class="modal-header">
+      <h2 id="modalTitulo">Novo Produto</h2>
+      <button class="fechar" onclick="fecharModal()">✕</button>
     </div>
+    <form id="formProduto">
+      <input type="hidden" id="campoLinha">
 
-    <div id="tabelaWrap" class="tabela-wrap">
-      <table id="tabelaProdutos">
-        <thead>
-          <tr>
-            <th>Imagem</th>
-            <th>Nome</th>
-            <th>Categoria</th>
-            <th>Destaque</th>
-            <th>Status</th>
-            <th>Ações</th>
-          </tr>
-        </thead>
-        <tbody id="corpoTabela">
-          <tr><td colspan="7" class="vazio">Carregando produtos...</td></tr>
-        </tbody>
-      </table>
-    </div>
-  </main>
-
-  <!-- Modal -->
-  <div id="modal" class="modal oculto">
-    <div class="modal-conteudo">
-      <div class="modal-header">
-        <h2 id="modalTitulo">Novo Produto</h2>
-        <button class="btn-fechar" onclick="fecharModal()">✕</button>
-      </div>
-      <form id="formProduto">
-        <input type="hidden" id="campoLinha">
-
+      <div class="form-secao">
         <h3> Dados principais</h3>
-        <div class="campo">
+        <div class="form-grupo">
           <label>Nome do produto *</label>
           <input type="text" id="nome" required>
         </div>
-        <div class="linha-dupla">
-          <div class="campo">
+        <div class="form-linha">
+          <div class="form-grupo">
             <label>Tipo</label>
-            <input type="text" id="tipo" placeholder="Ex: Físico ou Digital">
+            <input type="text" id="tipo">
           </div>
-          <div class="campo">
+          <div class="form-grupo">
             <label>Plataforma</label>
-            <input type="text" id="plataforma" placeholder="Ex: Shopee, Amazon">
+            <input type="text" id="plataforma">
           </div>
         </div>
-        <div class="linha-dupla">
-          <div class="campo">
+        <div class="form-linha">
+          <div class="form-grupo">
             <label>Categoria</label>
-            <input type="text" id="categoria" placeholder="Ex: Casa, Eletrônicos">
+            <input type="text" id="categoria">
           </div>
-          <div class="campo">
+          <div class="form-grupo">
             <label>Subcategoria</label>
-            <input type="text" id="subcategoria" placeholder="Ex: Cozinha, Áudio">
+            <input type="text" id="subcategoria">
           </div>
         </div>
-
-        <div class="linha-dupla">
-        <div class="campo">
-            <label>Validade da oferta</label>
-            <input type="text" id="validade" placeholder="31/12/2026">
-          </div>
+        <div class="form-grupo">
+          <label>Validade da oferta</label>
+          <input type="text" id="validade" placeholder="Ex: até 30/12">
         </div>
+      </div>
 
+      <div class="form-secao">
         <h3>🔗 Link e botão</h3>
-        <div class="campo">
+        <div class="form-grupo">
           <label>Link de Afiliado *</label>
-          <input type="url" id="link" required placeholder="https://...">
+          <input type="url" id="link" required>
         </div>
+        <div class="form-grupo">
+          <label>Texto do Botão</label>
+          <input type="text" id="textoBotao" value="Ver oferta →">
+        </div>
+      </div>
 
+      <div class="form-secao">
         <h3>🖼️ Imagens</h3>
-        <div class="campo">
+        <div class="form-grupo">
           <label>Imagem 1 (principal) *</label>
-          <input type="url" id="imagem1" required placeholder="https://...">
+          <input type="url" id="imagem1" required>
         </div>
-   
-        <h3>⚙️ Configurações</h3>
-          <div class="campo">
+      </div>
+
+      <div class="form-secao">
+        <h3>️ Configurações</h3>
+        <div class="form-linha">
+          <div class="form-grupo">
             <label>Ordem</label>
-            <input type="number" id="ordem" placeholder="1">
+            <input type="number" id="ordem" value="0">
           </div>
-          <div class="campo">
+          <div class="form-grupo">
             <label>Destaque?</label>
             <select id="destaque">
               <option value="Não">Não</option>
               <option value="Sim">Sim</option>
             </select>
           </div>
-          <div class="campo">
-            <label>Ativo?</label>
-            <select id="ativo">
-              <option value="Sim">Sim</option>
-              <option value="Não">Não</option>
-            </select>
-          </div>
-    </div>
-        <div class="botoes-form">
-          <button type="button" class="btn" onclick="fecharModal()">Cancelar</button>
-          <button type="submit" class="btn btn-primary">💾 Salvar</button>
         </div>
-      </form>
-    </div>
+        <div class="form-grupo">
+          <label>Ativo?</label>
+          <select id="ativo">
+            <option value="Sim">Sim</option>
+            <option value="Não">Não</option>
+          </select>
+        </div>
+      </div>
+
+      <div class="form-acoes">
+        <button type="button" class="btn btn-secondary" onclick="fecharModal()">Cancelar</button>
+        <button type="submit" class="btn btn-success">💾 Salvar</button>
+      </div>
+    </form>
   </div>
+</div>
 
-  <div id="toast" class="toast oculto"></div>
+<div id="toast" class="toast oculto"></div>
 
-  <script src="config.js"></script>
-  <script src="admin.js"></script>
+<!-- Importa config.js PRIMEIRO -->
+<script src="config.js"></script>
+<!-- Depois importa admin.js -->
+<script src="admin.js"></script>
 </body>
 </html>
