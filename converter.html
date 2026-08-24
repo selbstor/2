@@ -1,0 +1,42 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <meta charset="UTF-8">
+  <title>Gerador de Link Direto - Google Drive</title>
+  <style>
+    body { font-family: Arial, sans-serif; max-width: 800px; margin: 50px auto; padding: 20px; }
+    input, button { padding: 10px; margin: 10px 0; width: 100%; box-sizing: border-box; }
+    button { background: #4285f4; color: white; border: none; cursor: pointer; }
+    .resultado { background: #f0f0f0; padding: 15px; border-radius: 5px; word-break: break-all; }
+  </style>
+</head>
+<body>
+  <h2> Gerador de Link Direto - Google Drive</h2>
+  
+  <label>Cole o link do Google Drive:</label>
+  <input type="text" id="linkOriginal" placeholder="https://drive.google.com/file/d/...">
+  
+  <button onclick="gerarLinkDireto()">Gerar Link Direto</button>
+  
+  <div id="resultado" class="resultado" style="display:none;">
+    <strong>Link direto:</strong><br>
+    <span id="linkDireto"></span>
+  </div>
+
+  <script>
+    function gerarLinkDireto() {
+      const link = document.getElementById('linkOriginal').value;
+      const idMatch = link.match(/\/d\/([a-zA-Z0-9_-]+)/);
+      
+      if (idMatch && idMatch[1]) {
+        const id = idMatch[1];
+        const linkDireto = `https://drive.google.com/uc?export=view&id=${id}`;
+        document.getElementById('linkDireto').textContent = linkDireto;
+        document.getElementById('resultado').style.display = 'block';
+      } else {
+        alert('Link inválido! Verifique se é um link do Google Drive.');
+      }
+    }
+  </script>
+</body>
+</html>
