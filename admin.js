@@ -143,7 +143,7 @@ function renderizarTabela() {
         <td><span class="badge badge-${ativo === 'Sim' ? 'sim' : 'nao'}">${ativo}</span></td>
         <td class="acoes">
           <button class="btn btn-sm btn-icono" title="Editar produto" onclick="editar(${p._linha})">✏️</button>
-          <button class="btn btn-sm btn-icono" title="Excluir produto" onclick="excluir(${p._linha})">️</button>
+          <button class="btn btn-sm btn-icono" title="Excluir produto" onclick="excluir(${p._linha})">🗑️</button>
         </td>
       </tr>
     `;
@@ -208,27 +208,19 @@ document.getElementById('formProduto').addEventListener('submit', async (e) => {
   };
   try {
     toast('Salvando alterações...', '');
-    const urlEnvio = `${URL_GRAVAR_PRODUTOS}?data=${encodeURIComponent(JSON.stringify(dados))}`;
+    const urlEnvio = `${URL_GRAVAR_PRODUTOS}&data=${encodeURIComponent(JSON.stringify(dados))}`;
     const resp = await fetch(urlEnvio, { method: 'GET' });
-    const texto = await resp.text();
-    let resJson;
-    try {
-      resJson = JSON.parse(texto);
-    } catch (parseErr) {
-      console.error('Resposta não é JSON:', texto);
-      toast('❌ Servidor retornou resposta inválida.', 'erro');
-      return;
-    }
+    const resJson = await resp.json();
     if (resJson.ok) {
-      toast('✅ ' + (resJson.msg || 'Salvo com sucesso!'), 'sucesso');
+      toast('✅ ' + resJson.msg, 'sucesso');
       fecharModal();
       setTimeout(carregarProdutos, 1500);
     } else {
-      toast('❌ Erro: ' + (resJson.msg || 'Desconhecido'), 'erro');
+      toast('❌ Erro: ' + resJson.msg, 'erro');
     }
   } catch (err) {
     console.error(err);
-    toast('❌ Erro ao salvar dados: ' + err.message, 'erro');
+    toast('❌ Erro ao salvar dados.', 'erro');
   }
 });
 
@@ -240,17 +232,9 @@ async function excluir(linha) {
   try {
     toast('Excluindo...', '');
     const dados = { acao: 'excluir', linha: linha };
-    const urlEnvio = `${URL_GRAVAR_PRODUTOS}?data=${encodeURIComponent(JSON.stringify(dados))}`;
+    const urlEnvio = `${URL_GRAVAR_PRODUTOS}&data=${encodeURIComponent(JSON.stringify(dados))}`;
     const resp = await fetch(urlEnvio, { method: 'GET' });
-    const texto = await resp.text();
-    let resJson;
-    try {
-      resJson = JSON.parse(texto);
-    } catch (parseErr) {
-      console.error('Resposta não é JSON:', texto);
-      toast('❌ Servidor retornou resposta inválida.', 'erro');
-      return;
-    }
+    const resJson = await resp.json();
     if (resJson.ok) {
       toast('✅ Excluído com sucesso!', 'sucesso');
       setTimeout(carregarProdutos, 1500);
