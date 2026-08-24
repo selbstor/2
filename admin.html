@@ -23,7 +23,7 @@
     gap: 10px;
   }
   h1 { font-size: 1.6rem; color: #2c3e50; }
-  .acoes-topo { display: flex; gap: 10px; flex-wrap: wrap; }
+  .acoes-topo { display: flex; gap: 10px; flex-wrap: wrap; align-items: center; }
   .btn {
     padding: 10px 18px;
     border: none;
@@ -32,15 +32,34 @@
     font-weight: 600;
     font-size: 0.9rem;
     transition: all 0.2s;
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
   }
   .btn-primary { background: #3498db; color: white; }
   .btn-primary:hover { background: #2980b9; }
   .btn-secondary { background: #ecf0f1; color: #2c3e50; }
   .btn-secondary:hover { background: #d5dbdb; }
   .btn-danger { background: #e74c3c; color: white; }
+  .btn-danger:hover { background: #c0392b; }
   .btn-success { background: #27ae60; color: white; }
   .btn-sm { padding: 6px 10px; font-size: 0.85rem; }
   .btn-icono { background: transparent; padding: 4px 8px; }
+  .btn-selecionados { 
+    background: #e74c3c; 
+    color: white;
+    display: none;
+  }
+  .btn-selecionados.visivel { display: inline-flex; }
+  .contador-selecionados {
+    background: #3498db;
+    color: white;
+    padding: 8px 14px;
+    border-radius: 8px;
+    font-weight: 600;
+    display: none;
+  }
+  .contador-selecionados.visivel { display: inline-flex; }
   .filtros {
     display: flex;
     gap: 10px;
@@ -83,6 +102,13 @@
   .badge-sim, .badge-destaque { background: #d4edda; color: #155724; }
   .badge-nao { background: #f8d7da; color: #721c24; }
   .acoes { display: flex; gap: 5px; }
+  /* Checkbox */
+  .checkbox-custom {
+    width: 18px;
+    height: 18px;
+    cursor: pointer;
+    accent-color: #3498db;
+  }
   /* Modal */
   .modal-overlay {
     position: fixed;
@@ -176,6 +202,12 @@
     <div class="acoes-topo">
       <button id="btnNovo" class="btn btn-primary">+ Novo Produto</button>
       <button id="btnRecarregar" class="btn btn-secondary">🔄 Recarregar</button>
+      <span id="contadorSelecionados" class="contador-selecionados">
+        <i class="fas fa-check-circle"></i> <span id="numSelecionados">0</span> selecionado(s)
+      </span>
+      <button id="btnExcluirSelecionados" class="btn btn-selecionados" onclick="excluirSelecionados()">
+        <i class="fas fa-trash"></i> Excluir Selecionados
+      </button>
     </div>
   </header>
 
@@ -191,6 +223,9 @@
   <table>
     <thead>
       <tr>
+        <th style="width: 40px;">
+          <input type="checkbox" id="checkboxTodos" class="checkbox-custom" onchange="toggleTodos()">
+        </th>
         <th>Imagem</th>
         <th>Nome</th>
         <th>Categoria</th>
@@ -200,7 +235,7 @@
       </tr>
     </thead>
     <tbody id="corpoTabela">
-      <tr><td colspan="6" class="vazio">Carregando produtos...</td></tr>
+      <tr><td colspan="7" class="vazio">Carregando produtos...</td></tr>
     </tbody>
   </table>
 </div>
@@ -216,7 +251,7 @@
       <input type="hidden" id="campoLinha">
 
       <div class="form-secao">
-        <h3> Dados principais</h3>
+        <h3>📦 Dados principais</h3>
         <div class="form-grupo">
           <label>Nome do produto *</label>
           <input type="text" id="nome" required>
@@ -248,7 +283,7 @@
       </div>
 
       <div class="form-secao">
-        <h3>🔗 Link e botão</h3>
+        <h3> Link e botão</h3>
         <div class="form-grupo">
           <label>Link de Afiliado *</label>
           <input type="url" id="link" required>
