@@ -1,5 +1,6 @@
 const URL_GRAVAR_PRODUTOS = ACHADINHOS.registrar_cliques;
 let produtos = [];
+let produtoEditando = null;
 
 async function carregarProdutos() {
   const corpo = document.getElementById('corpoTabela');
@@ -16,7 +17,7 @@ async function carregarProdutos() {
     produtos = parseCSV(texto);
     renderizarTabela();
   } catch (e) {
-    console.error('Erro ao carregar:', e);
+    console.error('Erro:', e);
     corpo.innerHTML = `<tr><td colspan="6" class="vazio">Erro: ${e.message}</td></tr>`;
   }
 }
@@ -69,15 +70,11 @@ function get(p, ...nomes) {
   return '';
 }
 
-// ✅ ESCAPE HTML CORRIGIDO (SEM ERRO DE SINTAXE)
+// ✅ ESCAPE HTML CORRIGIDO
 function escapeHtml(s) {
   if (!s) return '';
   return String(s).replace(/[&<>"']/g, c => ({
-    '&': '&amp;',
-    '<': '&lt;',
-    '>': '&gt;',
-    '"': '&quot;',
-    "'": '&#39;'
+    '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;'
   }[c]));
 }
 
@@ -147,7 +144,6 @@ function editar(linha) {
   abrirModal();
 }
 
-// ✅ SALVAR (APENAS CAMPOS EXISTENTES)
 document.getElementById('formProduto').onsubmit = async (e) => {
   e.preventDefault();
   const linha = document.getElementById('campoLinha').value;
