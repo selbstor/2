@@ -9,33 +9,21 @@
   * { box-sizing: border-box; margin: 0; padding: 0; }
   body {
     font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
-    background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+    background: #f5f7fa;
     color: #333;
     min-height: 100vh;
   }
   header {
-    background: rgba(255,255,255,0.1);
-    backdrop-filter: blur(10px);
+    background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
     color: white;
     padding: 30px 20px;
     text-align: center;
-    border-bottom: 1px solid rgba(255,255,255,0.2);
+    box-shadow: 0 2px 10px rgba(0,0,0,0.1);
   }
-  header h1 { 
-    font-size: 2rem; 
-    margin-bottom: 8px;
-    font-weight: 700;
-  }
-  header p { 
-    opacity: 0.95; 
-    font-size: 1rem;
-    font-weight: 300;
-  }
-  .container { 
-    max-width: 1200px; 
-    margin: 0 auto; 
-    padding: 30px 20px;
-  }
+  header h1 { font-size: 2rem; margin-bottom: 8px; font-weight: 700; }
+  header p { opacity: 0.95; font-size: 1rem; }
+  .container { max-width: 1200px; margin: 0 auto; padding: 30px 20px; }
+  
   .filtros-categoria {
     display: flex;
     gap: 10px;
@@ -45,7 +33,6 @@
     background: white;
     border-radius: 50px;
     box-shadow: 0 4px 15px rgba(0,0,0,0.1);
-    justify-content: center;
   }
   .btn-cat {
     padding: 10px 20px;
@@ -58,25 +45,26 @@
     transition: all 0.3s;
     color: #555;
   }
-  .btn-cat:hover { 
-    background: #f5f5f5;
-    border-color: #667eea;
-  }
+  .btn-cat:hover { background: #f5f5f5; border-color: #667eea; }
   .btn-cat.ativo {
     background: linear-gradient(135deg, #667eea, #764ba2);
     color: white;
     border-color: #667eea;
     box-shadow: 0 4px 12px rgba(102, 126, 234, 0.4);
   }
+  
   .secao-titulo {
     font-size: 1.4rem;
     margin: 35px 0 20px;
-    color: white;
+    color: #2c3e50;
     font-weight: 600;
     display: flex;
     align-items: center;
     gap: 10px;
+    padding-left: 15px;
+    border-left: 4px solid #667eea;
   }
+  
   .grid {
     display: grid;
     grid-template-columns: repeat(auto-fill, minmax(260px, 1fr));
@@ -128,16 +116,12 @@
     font-size: 0.8rem;
     color: #888;
     margin-bottom: 10px;
-    font-weight: 500;
   }
   .card-validade {
     font-size: 0.8rem;
     color: #e74c3c;
     margin-bottom: 12px;
     font-weight: 600;
-    display: flex;
-    align-items: center;
-    gap: 5px;
   }
   .card-acoes {
     display: flex;
@@ -157,10 +141,6 @@
     text-decoration: none;
     text-align: center;
     transition: all 0.3s;
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    gap: 6px;
   }
   .btn-oferta:hover { 
     background: linear-gradient(135deg, #229954, #27ae60);
@@ -175,111 +155,65 @@
     cursor: pointer;
     font-size: 1rem;
     transition: all 0.3s;
-    display: flex;
-    align-items: center;
-    justify-content: center;
   }
-  .btn-compartilhar:hover { 
-    background: #d5dbdb;
-    transform: scale(1.05);
-  }
+  .btn-compartilhar:hover { background: #d5dbdb; }
+  
   .vazio {
     text-align: center;
     padding: 60px 20px;
-    color: white;
-    background: rgba(255,255,255,0.1);
+    color: #888;
+    background: white;
     border-radius: 16px;
-    backdrop-filter: blur(10px);
-    font-size: 1.1rem;
   }
   .erro-box {
     text-align: center;
     padding: 60px 20px;
-    background: rgba(255,255,255,0.95);
+    background: #fff3cd;
+    border: 1px solid #ffeaa7;
     border-radius: 16px;
     color: #856404;
-    max-width: 500px;
-    margin: 40px auto;
-    box-shadow: 0 8px 25px rgba(0,0,0,0.15);
   }
-  .erro-box h2 { 
-    margin-bottom: 15px;
-    color: #e74c3c;
-    font-size: 1.5rem;
-  }
-  .erro-box p {
-    margin-bottom: 20px;
-    color: #666;
-  }
+  .erro-box h2 { margin-bottom: 15px; color: #e74c3c; }
   .erro-box button {
+    margin-top: 20px;
     padding: 12px 30px;
-    background: linear-gradient(135deg, #667eea, #764ba2);
+    background: #667eea;
     color: white;
     border: none;
     border-radius: 8px;
     cursor: pointer;
     font-weight: 600;
-    font-size: 0.95rem;
-  }
-  .erro-box button:hover {
-    transform: translateY(-2px);
-    box-shadow: 0 4px 12px rgba(102, 126, 234, 0.4);
   }
   footer {
     text-align: center;
     padding: 30px 20px;
-    color: white;
-    font-size: 0.9rem;
+    color: #888;
     margin-top: 50px;
-    background: rgba(0,0,0,0.2);
   }
-  footer a { 
-    color: white; 
-    text-decoration: none;
-    font-weight: 600;
-  }
-  footer a:hover {
-    text-decoration: underline;
-  }
+  footer a { color: #667eea; text-decoration: none; }
   .toast {
     position: fixed;
     bottom: 30px;
     left: 50%;
-    transform: translateX(-50%) translateY(100px);
+    transform: translateX(-50%);
     background: #2c3e50;
     color: white;
     padding: 14px 28px;
     border-radius: 50px;
     box-shadow: 0 6px 20px rgba(0,0,0,0.3);
     z-index: 2000;
-    transition: all 0.3s;
     opacity: 0;
-    font-weight: 500;
+    transition: opacity 0.3s;
+    pointer-events: none;
   }
-  .toast.visivel { 
-    opacity: 1;
-    transform: translateX(-50%) translateY(0);
-  }
+  .toast.visivel { opacity: 1; }
   .loading {
     text-align: center;
     padding: 60px 20px;
-    color: white;
-    font-size: 1.1rem;
+    color: #667eea;
   }
-  .loading i {
-    font-size: 3rem;
-    animation: spin 1s linear infinite;
-    margin-bottom: 15px;
-  }
-  @keyframes spin {
-    100% { transform: rotate(360deg); }
-  }
-  @media (max-width: 768px) {
-    header h1 { font-size: 1.5rem; }
-    .grid { grid-template-columns: repeat(auto-fill, minmax(160px, 1fr)); gap: 15px; }
-    .filtros-categoria { padding: 12px 15px; }
-    .btn-cat { padding: 8px 16px; font-size: 0.85rem; }
-  }
+  .loading i { font-size: 3rem; animation: spin 1s linear infinite; }
+  @keyframes spin { 100% { transform: rotate(360deg); } }
 </style>
 </head>
 <body>
@@ -304,26 +238,18 @@
 
 <div id="toast" class="toast"></div>
 
-<!-- Importa config.js PRIMEIRO -->
 <script src="config.js"></script>
-
 <script>
 let produtos = [];
 let categoriaAtiva = 'Todos';
 
-// ============ ESCAPE HTML ============
 function escapeHtml(s) {
   if (s === null || s === undefined) return '';
   return String(s).replace(/[&<>"']/g, c => ({
-    '&': '&amp;',
-    '<': '&lt;',
-    '>': '&gt;',
-    '"': '&quot;',
-    "'": '&#39;'
+    '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;'
   }[c]));
 }
 
-// ============ BUSCA NORMALIZADA ============
 function get(p, ...nomes) {
   for (const nome of nomes) {
     for (const chave of Object.keys(p)) {
@@ -336,7 +262,6 @@ function get(p, ...nomes) {
   return '';
 }
 
-// ============ PARSER CSV ============
 function parseCSV(texto) {
   const linhas = texto.split(/\r?\n/);
   if (linhas.length < 2) return [];
@@ -355,9 +280,7 @@ function parseCSV(texto) {
     .map(l => {
       const cols = parseLinhaCSV(l);
       const obj = {};
-      cabecalhos.forEach((h, idx) => {
-        obj[h.trim()] = cols[idx] !== undefined ? cols[idx] : '';
-      });
+      cabecalhos.forEach((h, idx) => { obj[h.trim()] = cols[idx] !== undefined ? cols[idx] : ''; });
       return obj;
     });
 }
@@ -383,13 +306,10 @@ function parseLinhaCSV(linha) {
   return res;
 }
 
-// ============ CARREGAR ============
 async function carregar() {
   const conteudo = document.getElementById('conteudo');
   try {
-    if (typeof ACHADINHOS === 'undefined') {
-      throw new Error('Configuração não carregada');
-    }
+    if (typeof ACHADINHOS === 'undefined') throw new Error('Configuração não carregada');
     const resp = await fetch(ACHADINHOS.planilha_catalogo + '&t=' + Date.now(), {
       method: 'GET', mode: 'cors', cache: 'no-cache'
     });
@@ -403,18 +323,17 @@ async function carregar() {
     conteudo.innerHTML = `
       <div class="erro-box">
         <h2><i class="fas fa-exclamation-triangle"></i> Ops! Não foi possível carregar</h2>
-        <p>Verifique se a planilha está publicada corretamente e se o config.js está configurado.</p>
+        <p>Verifique se a planilha está publicada e o config.js configurado.</p>
         <button onclick="carregar()"><i class="fas fa-sync-alt"></i> Tentar novamente</button>
       </div>
     `;
   }
 }
 
-// ============ RENDERIZAR ============
 function renderizar() {
   const conteudo = document.getElementById('conteudo');
   if (produtos.length === 0) {
-    conteudo.innerHTML = '<div class="vazio"><i class="fas fa-box-open"></i><br>Nenhum produto disponível no momento.</div>';
+    conteudo.innerHTML = '<div class="vazio"><i class="fas fa-box-open fa-3x"></i><br><br>Nenhum produto disponível.</div>';
     return;
   }
 
@@ -427,14 +346,9 @@ function renderizar() {
 
   const destaques = ordenados.filter(p => get(p, 'Destaque') === 'Sim');
   const categorias = ['Todos', ...new Set(ordenados.map(p => get(p, 'Categoria')).filter(Boolean))];
-
-  const filtrados = categoriaAtiva === 'Todos'
-    ? ordenados
-    : ordenados.filter(p => get(p, 'Categoria') === categoriaAtiva);
+  const filtrados = categoriaAtiva === 'Todos' ? ordenados : ordenados.filter(p => get(p, 'Categoria') === categoriaAtiva);
 
   let html = '';
-
-  // Filtros de categoria
   html += `<div class="filtros-categoria">`;
   categorias.forEach(cat => {
     const ativa = cat === categoriaAtiva ? 'ativo' : '';
@@ -442,16 +356,14 @@ function renderizar() {
   });
   html += `</div>`;
 
-  // Destaques
   if (categoriaAtiva === 'Todos' && destaques.length > 0) {
     html += `<h2 class="secao-titulo"><i class="fas fa-star"></i> Destaques</h2>`;
     html += `<div class="grid">${destaques.map(renderCard).join('')}</div>`;
   }
 
-  // Todos os produtos
   html += `<h2 class="secao-titulo"><i class="fas fa-shopping-cart"></i> ${categoriaAtiva === 'Todos' ? 'Todos os Achadinhos' : escapeHtml(categoriaAtiva)}</h2>`;
   if (filtrados.length === 0) {
-    html += `<div class="vazio"><i class="fas fa-search"></i><br>Nenhum produto nesta categoria.</div>`;
+    html += `<div class="vazio"><i class="fas fa-search fa-3x"></i><br><br>Nenhum produto nesta categoria.</div>`;
   } else {
     html += `<div class="grid">${filtrados.map(renderCard).join('')}</div>`;
   }
@@ -482,14 +394,13 @@ function renderCard(p) {
         ${validadeHtml}
         <div class="card-acoes">
           <a href="${escapeHtml(link)}" target="_blank" rel="noopener" class="btn-oferta" onclick="registrarClique('${escapeHtml(nome)}')"><i class="fas fa-external-link-alt"></i> Ver oferta</a>
-          <button class="btn-compartilhar" onclick="compartilhar('${escapeHtml(nome).replace(/'/g, "\\'")}', '${escapeHtml(link).replace(/'/g, "\\'")}')" title="Compartilhar"><i class="fas fa-share-alt"></i></button>
+          <button class="btn-compartilhar" onclick="compartilhar('${escapeHtml(nome)}', '${escapeHtml(link)}')" title="Compartilhar"><i class="fas fa-share-alt"></i></button>
         </div>
       </div>
     </div>
   `;
 }
 
-// ============ AÇÕES ============
 function filtrarCategoria(cat) {
   categoriaAtiva = cat;
   renderizar();
@@ -500,9 +411,7 @@ async function registrarClique(nome) {
     const dados = { acao: 'clique', produto: nome, data: new Date().toISOString() };
     const url = `${ACHADINHOS.registrar_cliques}?data=${encodeURIComponent(JSON.stringify(dados))}`;
     await fetch(url, { method: 'GET' });
-  } catch (e) {
-    console.warn('Falha ao registrar clique:', e);
-  }
+  } catch (e) { console.warn('Falha ao registrar clique:', e); }
 }
 
 function compartilhar(nome, link) {
@@ -525,9 +434,7 @@ function mostrarToast(msg) {
   setTimeout(() => t.classList.remove('visivel'), 2500);
 }
 
-// Iniciar
 carregar();
 </script>
-
 </body>
 </html>
