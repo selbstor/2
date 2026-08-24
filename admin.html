@@ -4,7 +4,15 @@
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <title>Gerenciar Produtos — Selbstor|Achadinhos</title>
-<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+
+<!-- ⚠️ CONFIGURAÇÃO: substitua SEU_ID_AQUI pela URL real do seu Apps Script -->
+<script>
+  const ACHADINHOS = {
+    planilha_catalogo: 'https://script.google.com/macros/s/SEU_ID_AQUI/exec?sheet=catalogo',
+    registrar_cliques: 'https://script.google.com/macros/s/SEU_ID_AQUI/exec?sheet=gravar'
+  };
+</script>
+
 <style>
   * { box-sizing: border-box; margin: 0; padding: 0; }
   body {
@@ -37,6 +45,7 @@
   .btn-primary:hover { background: #2980b9; }
   .btn-secondary { background: #ecf0f1; color: #2c3e50; }
   .btn-secondary:hover { background: #d5dbdb; }
+  .btn-danger { background: #e74c3c; color: white; }
   .btn-success { background: #27ae60; color: white; }
   .btn-sm { padding: 6px 10px; font-size: 0.85rem; }
   .btn-icono { background: transparent; padding: 4px 8px; }
@@ -92,7 +101,6 @@
     justify-content: center;
     z-index: 1000;
     padding: 20px;
-    backdrop-filter: blur(4px);
   }
   .modal-overlay.oculto { display: none; }
   .modal {
@@ -248,18 +256,34 @@
       </div>
 
       <div class="form-secao">
-        <h3>🔗 Link</h3>
+        <h3>🔗 Link e botão</h3>
         <div class="form-grupo">
           <label>Link de Afiliado *</label>
           <input type="url" id="link" required>
         </div>
+        <div class="form-grupo">
+          <label>Texto do Botão</label>
+          <input type="text" id="textoBotao" value="Ver oferta →">
+        </div>
       </div>
 
       <div class="form-secao">
-        <h3>🖼️ Imagem</h3>
+        <h3>🖼️ Imagens</h3>
         <div class="form-grupo">
-          <label>Imagem (principal) *</label>
+          <label>Imagem 1 (principal) *</label>
           <input type="url" id="imagem1" required>
+        </div>
+        <div class="form-grupo">
+          <label>Imagem 2</label>
+          <input type="url" id="imagem2">
+        </div>
+        <div class="form-grupo">
+          <label>Imagem 3</label>
+          <input type="url" id="imagem3">
+        </div>
+        <div class="form-grupo">
+          <label>Imagem 4</label>
+          <input type="url" id="imagem4">
         </div>
       </div>
 
@@ -297,9 +321,6 @@
 
 <div id="toast" class="toast oculto"></div>
 
-<!-- Importa config.js PRIMEIRO -->
-<script src="config.js"></script>
-<!-- Depois importa admin.js -->
 <script src="admin.js"></script>
 </body>
 </html>
