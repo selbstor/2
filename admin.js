@@ -96,7 +96,7 @@ function get(p, ...nomes) {
   return '';
 }
 
-// ============ ESCAPE HTML (CORRIGIDO) ============
+// ============ ESCAPE HTML (CORRIGIDO - ERRO CRÍTICO) ============
 function escapeHtml(s) {
   if (s === null || s === undefined) return '';
   return String(s).replace(/[&<>"']/g, c => ({
@@ -216,7 +216,7 @@ document.getElementById('formProduto').addEventListener('submit', async (e) => {
       fecharModal();
       setTimeout(carregarProdutos, 1500);
     } else {
-      toast('❌ Erro: ' + resJson.msg, 'erro');
+      toast(' Erro: ' + resJson.msg, 'erro');
     }
   } catch (err) {
     console.error(err);
