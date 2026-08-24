@@ -19,14 +19,19 @@ async function carregarProdutos() {
     let texto = await resp.text();
     if (texto.charCodeAt(0) === 0xFEFF) texto = texto.slice(1);
     produtos = parseCSV(texto);
+    console.log('✅ Produtos carregados:', produtos.length);
+    if (produtos.length > 0) {
+      console.log('📋 Primeiro produto:', produtos[0]);
+      console.log('🔑 Chaves disponíveis:', Object.keys(produtos[0]));
+    }
     renderizarTabela();
   } catch (e) {
     console.error('Erro:', e);
-    corpo.innerHTML = `<tr><td colspan="6" class="vazio">Erro de conexão.</td></tr>`;
+    corpo.innerHTML = `<tr><td colspan="6" class="vazio">Erro de conexão: ${e.message}</td></tr>`;
   }
 }
 
-// ============ PARSER CSV ============
+// ============ PARSER CSV INTELIGENTE ============
 function parseCSV(texto) {
   const linhas = texto.split(/\r?\n/);
   if (linhas.length < 2) return [];
@@ -40,6 +45,7 @@ function parseCSV(texto) {
   }
   if (indiceCabecalho === -1) indiceCabecalho = 0;
   const cabecalhos = parseLinhaCSV(linhas[indiceCabecalho]);
+  console.log('📋 Cabeçalhos encontrados:', cabecalhos);
   return linhas.slice(indiceCabecalho + 1)
     .filter(l => l.trim().length > 0)
     .map((l, i) => {
@@ -83,19 +89,22 @@ function parseLinhaCSV(linha) {
   return res;
 }
 
+// Função universal para buscar propriedades ignorando maiúsculas/acentos
 function get(p, ...nomes) {
   for (const nome of nomes) {
     for (const chave of Object.keys(p)) {
       if (chave.startsWith('_')) continue;
       const normChave = chave.toLowerCase().normalize('NFD').replace(/[\u0300-\u036f]/g, '').replace(/[^a-z0-9]/g, '');
       const normNome = nome.toLowerCase().normalize('NFD').replace(/[\u0300-\u036f]/g, '').replace(/[^a-z0-9]/g, '');
-      if (normChave === normNome) return p[chave];
+      if (normChave === normNome) {
+        return p[chave];
+      }
     }
   }
   return '';
 }
 
-// ============ ESCAPE HTML (✅ CORRIGIDO) ============
+// ============ ESCAPE HTML (CORRIGIDO) ============
 function escapeHtml(s) {
   if (s === null || s === undefined) return '';
   return String(s).replace(/[&<>"']/g, c => ({
@@ -128,13 +137,22 @@ function renderizarTabela() {
   
   corpo.innerHTML = filtrados.map(p => {
     const nome = get(p, 'Nome') || '(sem nome)';
-    const img = (get(p, 'Imagem 1', 'Imagem') || '').trim();
+    // Busca imagem em múltiplos campos possíveis
+    const img = (get(p, 'Imagem 1', 'Imagem', 'imagem1', 'URL_IMAGEM') || '').trim();
     const cat = get(p, 'Categoria') || '-';
     const destaque = get(p, 'Destaque') || 'Não';
     const ativo = get(p, 'Ativo') || 'Sim';
+    
+    // Debug para ver o que está sendo encontrado
+    if (!img && filtrados.indexOf(p) === 0) {
+      console.log('🔍 Procurando imagem no produto:', nome);
+      console.log(' Todos os campos do produto:', p);
+    }
+    
     const imgHtml = img
-      ? `<img src="${escapeHtml(img)}" alt="" onerror="this.style.display='none'">`
+      ? `<img src="${escapeHtml(img)}" alt="" onerror="this.onerror=null; this.parentElement.innerHTML='❌'; console.error('Erro ao carregar imagem:', '${escapeHtml(img)}')">`
       : '—';
+      
     return `
       <tr>
         <td>${imgHtml}</td>
@@ -185,7 +203,7 @@ function editar(linha) {
   abrirModal();
 }
 
-// ============ SALVAR (✅ CORRIGIDO COM TRATAMENTO DE ERRO) ============
+// ============ SALVAR ============
 document.getElementById('formProduto').addEventListener('submit', async (e) => {
   e.preventDefault();
   const linha = document.getElementById('campoLinha').value;
@@ -212,7 +230,7 @@ document.getElementById('formProduto').addEventListener('submit', async (e) => {
   console.log('📤 Enviando dados:', dados);
 
   try {
-    toast('💾 Salvando alterações...', '');
+    toast(' Salvando...', '');
     const urlEnvio = `${URL_GRAVAR_PRODUTOS}?data=${encodeURIComponent(JSON.stringify(dados))}`;
     console.log('🔗 URL:', urlEnvio);
     
@@ -226,8 +244,8 @@ document.getElementById('formProduto').addEventListener('submit', async (e) => {
     try {
       resJson = JSON.parse(texto);
     } catch (parseErr) {
-      console.error('❌ Resposta não é JSON válido:', texto);
-      toast('❌ Servidor retornou resposta inválida. Verifique o Apps Script.', 'erro');
+      console.error('❌ Resposta inválida do servidor:', texto);
+      toast('❌ Servidor retornou resposta inválida.', 'erro');
       return;
     }
 
@@ -239,8 +257,8 @@ document.getElementById('formProduto').addEventListener('submit', async (e) => {
       toast('❌ Erro: ' + (resJson.msg || 'Desconhecido'), 'erro');
     }
   } catch (err) {
-    console.error('❌ Erro completo:', err);
-    toast('❌ Erro de conexão: ' + err.message, 'erro');
+    console.error(' Erro completo:', err);
+    toast(' Erro de conexão: ' + err.message, 'erro');
   }
 });
 
@@ -249,6 +267,7 @@ async function excluir(linha) {
   const p = produtos.find(x => x._linha === linha);
   const nomeProduto = p ? (get(p, 'Nome') || 'este produto') : 'este produto';
   if (!confirm(`Deseja realmente excluir:\n\n"${nomeProduto}"?`)) return;
+  
   try {
     toast('Excluindo...', '');
     const dados = { acao: 'excluir', linha: linha };
@@ -257,14 +276,11 @@ async function excluir(linha) {
     const texto = await resp.text();
     
     let resJson;
-    try {
-      resJson = JSON.parse(texto);
-    } catch (parseErr) {
-      console.error('Resposta não é JSON:', texto);
+    try { resJson = JSON.parse(texto); } catch (err) {
       toast('❌ Servidor retornou resposta inválida.', 'erro');
       return;
     }
-    
+
     if (resJson.ok) {
       toast('✅ Excluído com sucesso!', 'sucesso');
       setTimeout(carregarProdutos, 1500);
