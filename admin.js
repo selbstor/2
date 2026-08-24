@@ -19,6 +19,7 @@ async function carregarProdutos() {
     let texto = await resp.text();
     if (texto.charCodeAt(0) === 0xFEFF) texto = texto.slice(1);
     produtos = parseCSV(texto);
+    console.log('✅ Produtos carregados:', produtos.length);
     renderizarTabela();
   } catch (e) {
     console.error('Erro:', e);
@@ -148,15 +149,18 @@ function renderizarTabela() {
         <td><span class="badge badge-${ativo === 'Sim' ? 'sim' : 'nao'}">${ativo}</span></td>
         <td class="acoes">
           <button class="btn btn-sm btn-icono" title="Editar produto" onclick="editar(${p._linha})">✏️</button>
-          <button class="btn btn-sm btn-icono" title="Excluir produto" onclick="excluir(${p._linha})">️</button>
+          <button class="btn btn-sm btn-icono" title="Excluir produto" onclick="excluir(${p._linha})">🗑️</button>
         </td>
       </tr>
     `;
   }).join('');
+  
+  console.log('✅ Tabela renderizada com', filtrados.length, 'produtos');
 }
 
 // ============ MODAL ============
 function abrirModal() { 
+  console.log('📂 Abrindo modal...');
   document.getElementById('modal').classList.remove('oculto'); 
 }
 function fecharModal() {
@@ -172,12 +176,12 @@ function novoProduto() {
   abrirModal();
 }
 
-// ============ EDITAR (✅ FUNCIONANDO) ============
+// ============ EDITAR ============
 function editar(linha) {
-  console.log('Editando linha:', linha);
+  console.log('️ Editando linha:', linha);
   const p = produtos.find(x => x._linha === linha);
   if (!p) {
-    console.error('Produto não encontrado:', linha);
+    console.error(' Produto não encontrado:', linha);
     return;
   }
   
@@ -200,6 +204,7 @@ function editar(linha) {
   document.getElementById('destaque').value = get(p, 'Destaque') || 'Não';
   document.getElementById('ativo').value = get(p, 'Ativo') || 'Sim';
   
+  console.log('✅ Modal preenchido, abrindo...');
   abrirModal();
 }
 
@@ -231,8 +236,10 @@ document.getElementById('formProduto').addEventListener('submit', async (e) => {
     produto: produto
   };
   
+  console.log('📤 Enviando dados:', dados);
+  
   try {
-    toast('Salvando...', '');
+    toast('💾 Salvando...', '');
     const urlEnvio = `${URL_GRAVAR_PRODUTOS}?data=${encodeURIComponent(JSON.stringify(dados))}`;
     const resp = await fetch(urlEnvio, { method: 'GET' });
     const texto = await resp.text();
@@ -242,7 +249,7 @@ document.getElementById('formProduto').addEventListener('submit', async (e) => {
       resJson = JSON.parse(texto);
     } catch (parseErr) {
       console.error('Resposta inválida:', texto);
-      toast('❌ Servidor retornou resposta inválida.', 'erro');
+      toast(' Servidor retornou resposta inválida.', 'erro');
       return;
     }
 
@@ -261,6 +268,7 @@ document.getElementById('formProduto').addEventListener('submit', async (e) => {
 
 // ============ EXCLUIR ============
 async function excluir(linha) {
+  console.log('🗑️ Excluindo linha:', linha);
   const p = produtos.find(x => x._linha === linha);
   const nomeProduto = p ? (get(p, 'Nome') || 'este produto') : 'este produto';
   if (!confirm(`Deseja realmente excluir:\n\n"${nomeProduto}"?`)) return;
