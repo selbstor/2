@@ -2,6 +2,7 @@ const URL_GRAVAR_PRODUTOS = ACHADINHOS.registrar_cliques;
 let produtos = [];
 let produtoEditando = null;
 let linhasSelecionadas = new Set();
+let linhasPendentesExclusao = [];
 
 // ============ CARREGAR ============
 async function carregarProdutos() {
@@ -165,52 +166,88 @@ function atualizarContador() {
   }
 }
 
-// ============ EXCLUIR SELECIONADOS ============
-async function excluirSelecionados() {
-  if (linhasSelecionadas.size === 0) {
-    toast('️ Nenhum produto selecionado', 'erro');
-    return;
-  }
+// ============ MODAL DE CONFIRMAÇÃO (NOVO) ============
+function abrirConfirmacaoExclusao(linhas) {
+  linhasPendentesExclusao = linhas;
   
-  if (!confirm(`Deseja realmente excluir ${linhasSelecionadas.size} produto(s) selecionado(s)?`)) {
-    return;
-  }
+  const qtdEl = document.getElementById('qtdExcluir');
+  const listaEl = document.getElementById('listaProdutosExcluir');
+  const btnConfirmar = document.getElementById('btnConfirmarExcluir');
   
-  try {
-    toast(`Excluindo ${linhasSelecionadas.size} produto(s)...`, '');
-    
-    const linhasArray = Array.from(linhasSelecionadas);
-    let sucesso = 0;
-    let erros = 0;
-    
-    for (const linha of linhasArray) {
-      try {
-        const dados = { acao: 'excluir', linha: linha };
-        const urlEnvio = `${URL_GRAVAR_PRODUTOS}&data=${encodeURIComponent(JSON.stringify(dados))}`;
-        const resp = await fetch(urlEnvio, { method: 'GET' });
-        const resJson = await resp.json();
-        if (resJson.ok) {
-          sucesso++;
-        } else {
-          erros++;
-        }
-      } catch (err) {
-        console.error('Erro ao excluir linha', linha, err);
+  qtdEl.textContent = linhas.length;
+  
+  // Montar lista de produtos para exibir
+  const maxExibir = 5;
+  let html = '<ul>';
+  linhas.slice(0, maxExibir).forEach(linha => {
+    const p = produtos.find(x => x._linha === linha);
+    const nome = p ? (get(p, 'Nome') || 'Produto sem nome') : 'Produto desconhecido';
+    const cat = p ? (get(p, 'Categoria') || '') : '';
+    const catHtml = cat ? `<span style="color:#888;font-size:0.75rem;margin-left:4px;">(${escapeHtml(cat)})</span>` : '';
+    html += `<li><i class="fas fa-times-circle"></i> ${escapeHtml(nome)}${catHtml}</li>`;
+  });
+  if (linhas.length > maxExibir) {
+    html += `<li class="mais-itens">... e mais ${linhas.length - maxExibir} produto(s)</li>`;
+  }
+  html += '</ul>';
+  listaEl.innerHTML = html;
+  
+  btnConfirmar.disabled = false;
+  btnConfirmar.innerHTML = '<i class="fas fa-trash-alt"></i> Sim, excluir tudo';
+  
+  document.getElementById('modalConfirmacao').classList.remove('oculto');
+}
+
+function fecharConfirmacao() {
+  document.getElementById('modalConfirmacao').classList.add('oculto');
+  linhasPendentesExclusao = [];
+}
+
+async function confirmarExclusao() {
+  const btnConfirmar = document.getElementById('btnConfirmarExcluir');
+  btnConfirmar.disabled = true;
+  btnConfirmar.innerHTML = '<i class="fas fa-spinner fa-spin"></i> Excluindo...';
+  
+  const linhas = linhasPendentesExclusao;
+  let sucesso = 0;
+  let erros = 0;
+  
+  for (const linha of linhas) {
+    try {
+      const dados = { acao: 'excluir', linha: linha };
+      const urlEnvio = `${URL_GRAVAR_PRODUTOS}&data=${encodeURIComponent(JSON.stringify(dados))}`;
+      const resp = await fetch(urlEnvio, { method: 'GET' });
+      const resJson = await resp.json();
+      if (resJson.ok) {
+        sucesso++;
+      } else {
         erros++;
       }
+    } catch (err) {
+      console.error('Erro ao excluir linha', linha, err);
+      erros++;
     }
-    
-    if (sucesso > 0) {
-      toast(`✅ ${sucesso} produto(s) excluído(s) com sucesso!`, 'sucesso');
-      linhasSelecionadas.clear();
-      atualizarContador();
-      setTimeout(carregarProdutos, 1500);
-    } else {
-      toast(`❌ Erro ao excluir produtos`, 'erro');
-    }
-  } catch (err) {
-    toast('❌ Erro de conexão.', 'erro');
   }
+  
+  fecharConfirmacao();
+  
+  if (sucesso > 0) {
+    toast(`✅ ${sucesso} produto(s) excluído(s) com sucesso!`, 'sucesso');
+    linhasSelecionadas.clear();
+    atualizarContador();
+    setTimeout(carregarProdutos, 1500);
+  } else {
+    toast('❌ Erro ao excluir produtos', 'erro');
+  }
+}
+
+// ============ EXCLUIR SELECIONADOS ============
+function excluirSelecionados() {
+  if (linhasSelecionadas.size === 0) {
+    toast('⚠️ Nenhum produto selecionado', 'erro');
+    return;
+  }
+  abrirConfirmacaoExclusao(Array.from(linhasSelecionadas));
 }
 
 // ============ RENDERIZAR TABELA ============
@@ -263,7 +300,7 @@ function renderizarTabela() {
   }).join('');
 }
 
-// ============ MODAL ============
+// ============ MODAL DE EDIÇÃO ============
 function abrirModal() { document.getElementById('modal').classList.remove('oculto'); }
 function fecharModal() {
   document.getElementById('modal').classList.add('oculto');
@@ -283,21 +320,22 @@ function editar(linha) {
   produtoEditando = p;
   document.getElementById('modalTitulo').textContent = 'Editar Produto';
   document.getElementById('campoLinha').value = linha;
-  document.getElementById('nome').value = get(p, 'Nome');
+  document.getElementById('ativo').value = get(p, 'Ativo') || 'Sim';
   document.getElementById('tipo').value = get(p, 'Tipo');
   document.getElementById('plataforma').value = get(p, 'Plataforma');
   document.getElementById('categoria').value = get(p, 'Categoria');
   document.getElementById('subcategoria').value = get(p, 'Subcategoria');
+  document.getElementById('nome').value = get(p, 'Nome');
   document.getElementById('validade').value = get(p, 'Validade da oferta');
   document.getElementById('link').value = get(p, 'Link de Afiliado', 'Link');
   document.getElementById('imagem1').value = get(p, 'Imagem 1', 'Imagem');
   document.getElementById('ordem').value = get(p, 'Ordem') || '0';
   document.getElementById('destaque').value = get(p, 'Destaque') || 'Não';
-  document.getElementById('ativo').value = get(p, 'Ativo') || 'Sim';
+ 
   abrirModal();
 }
 
-// ============ SALVAR (VIA GET PARA EVITAR CORS) ============
+// ============ SALVAR ============
 document.getElementById('formProduto').addEventListener('submit', async (e) => {
   e.preventDefault();
   const linha = document.getElementById('campoLinha').value;
@@ -337,28 +375,11 @@ document.getElementById('formProduto').addEventListener('submit', async (e) => {
   }
 });
 
-// ============ EXCLUIR ÚNICO ============
-async function excluir(linha) {
+// ============ EXCLUIR ÚNICO (com modal melhorado) ============
+function excluir(linha) {
   const p = produtos.find(x => x._linha === linha);
-  const nomeProduto = p ? (get(p, 'Nome') || 'este produto') : 'este produto';
-  if (!confirm(`Deseja realmente excluir:\n\n"${nomeProduto}"?`)) return;
-  try {
-    toast('Excluindo...', '');
-    const dados = { acao: 'excluir', linha: linha };
-    const urlEnvio = `${URL_GRAVAR_PRODUTOS}&data=${encodeURIComponent(JSON.stringify(dados))}`;
-    const resp = await fetch(urlEnvio, { method: 'GET' });
-    const resJson = await resp.json();
-    if (resJson.ok) {
-      toast('✅ Excluído com sucesso!', 'sucesso');
-      linhasSelecionadas.delete(linha);
-      atualizarContador();
-      setTimeout(carregarProdutos, 1500);
-    } else {
-      toast('❌ Erro ao excluir', 'erro');
-    }
-  } catch (err) {
-    toast('❌ Erro de conexão.', 'erro');
-  }
+  if (!p) return;
+  abrirConfirmacaoExclusao([linha]);
 }
 
 function toast(msg, tipo) {
@@ -373,5 +394,18 @@ document.getElementById('btnNovo').onclick = novoProduto;
 document.getElementById('btnRecarregar').onclick = carregarProdutos;
 document.getElementById('busca').oninput = renderizarTabela;
 document.getElementById('filtroStatus').onchange = renderizarTabela;
+
+// Fechar modal de confirmação ao clicar fora
+document.getElementById('modalConfirmacao').addEventListener('click', function(e) {
+  if (e.target === this) fecharConfirmacao();
+});
+
+// Fechar com tecla ESC
+document.addEventListener('keydown', function(e) {
+  if (e.key === 'Escape') {
+    fecharConfirmacao();
+    fecharModal();
+  }
+});
 
 carregarProdutos();
