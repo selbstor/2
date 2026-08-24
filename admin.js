@@ -119,6 +119,31 @@ function renderizarTabela() {
     </tr>`;
   }).join('');
 }
+  if (!filtrados.length) {
+    corpo.innerHTML = '<tr><td colspan="6" class="vazio">Nenhum produto encontrado</td></tr>';
+    return;
+  }
+
+  corpo.innerHTML = filtrados.map(p => {
+    const nome = get(p, 'Nome') || 'Sem nome';
+    const img = (get(p, 'Imagem 1') || get(p, 'Imagem') || '').trim();
+    const cat = get(p, 'Categoria') || '-';
+    const destaque = get(p, 'Destaque') || 'Não';
+    const ativo = get(p, 'Ativo') || 'Sim';
+    
+    return `<tr>
+      <td>${img ? `<img src="${escapeHtml(img)}" onerror="this.style.display='none'">` : '—'}</td>
+      <td><strong>${escapeHtml(nome)}</strong></td>
+      <td>${escapeHtml(cat)}</td>
+      <td><span class="badge badge-${destaque==='Sim'?'destaque':'nao'}">${destaque}</span></td>
+      <td><span class="badge badge-${ativo==='Sim'?'sim':'nao'}">${ativo}</span></td>
+      <td class="acoes">
+        <button class="btn btn-sm btn-icono" onclick="editar(${p._linha})" style="cursor:pointer">✏️</button>
+        <button class="btn btn-sm btn-icono" onclick="excluir(${p._linha})" style="cursor:pointer">🗑️</button>
+      </td>
+    </tr>`;
+  }).join('');
+}
 
 function abrirModal() { document.getElementById('modal').classList.remove('oculto'); }
 function fecharModal() {
