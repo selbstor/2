@@ -4,15 +4,7 @@
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <title>Gerenciar Produtos — Selbstor|Achadinhos</title>
-
-<!-- ⚠️ CONFIGURAÇÃO: substitua SEU_ID_AQUI pela URL real do seu Apps Script -->
-<script>
-  const ACHADINHOS = {
-    planilha_catalogo: 'https://script.google.com/macros/s/SEU_ID_AQUI/exec?sheet=catalogo',
-    registrar_cliques: 'https://script.google.com/macros/s/SEU_ID_AQUI/exec?sheet=gravar'
-  };
-</script>
-
+<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
 <style>
   * { box-sizing: border-box; margin: 0; padding: 0; }
   body {
@@ -224,7 +216,7 @@
       <input type="hidden" id="campoLinha">
 
       <div class="form-secao">
-        <h3>📦 Dados principais</h3>
+        <h3> Dados principais</h3>
         <div class="form-grupo">
           <label>Nome do produto *</label>
           <input type="text" id="nome" required>
@@ -261,6 +253,10 @@
           <label>Link de Afiliado *</label>
           <input type="url" id="link" required>
         </div>
+        <div class="form-grupo">
+          <label>Texto do Botão</label>
+          <input type="text" id="textoBotao" value="Ver oferta →">
+        </div>
       </div>
 
       <div class="form-secao">
@@ -284,7 +280,7 @@
       </div>
 
       <div class="form-secao">
-        <h3>⚙️ Configurações</h3>
+        <h3>️ Configurações</h3>
         <div class="form-linha">
           <div class="form-grupo">
             <label>Ordem</label>
@@ -317,6 +313,9 @@
 
 <div id="toast" class="toast oculto"></div>
 
+<!-- Importa config.js PRIMEIRO -->
+<script src="config.js"></script>
+<!-- Depois importa admin.js -->
 <script src="admin.js"></script>
 </body>
 </html>
