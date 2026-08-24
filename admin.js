@@ -1,6 +1,5 @@
 const URL_GRAVAR_PRODUTOS = ACHADINHOS.registrar_cliques;
 let produtos = [];
-let produtoEditando = null;
 
 async function carregarProdutos() {
   const corpo = document.getElementById('corpoTabela');
@@ -9,16 +8,15 @@ async function carregarProdutos() {
     const resp = await fetch(ACHADINHOS.planilha_catalogo + '&t=' + Date.now(), {
       method: 'GET', mode: 'cors', cache: 'no-cache'
     });
-    if (!resp.ok) {
-      corpo.innerHTML = `<tr><td colspan="6" class="vazio">Erro HTTP ${resp.status}</td></tr>`;
-      return;
-    }
+    if (!resp.ok) throw new Error('HTTP ' + resp.status);
+    
     let texto = await resp.text();
     if (texto.charCodeAt(0) === 0xFEFF) texto = texto.slice(1);
+    
     produtos = parseCSV(texto);
     renderizarTabela();
   } catch (e) {
-    console.error('Erro:', e);
+    console.error('Erro ao carregar:', e);
     corpo.innerHTML = `<tr><td colspan="6" class="vazio">Erro: ${e.message}</td></tr>`;
   }
 }
@@ -71,7 +69,7 @@ function get(p, ...nomes) {
   return '';
 }
 
-// ✅ ESCAPE HTML CORRIGIDO (SEM ERRO DE SINTAXE)
+// ✅ FUNÇÃO CORRIGIDA (c => sem espaço, mapeamento correto)
 function escapeHtml(s) {
   if (!s) return '';
   return String(s).replace(/[&<>"']/g, c => ({
@@ -97,7 +95,7 @@ function renderizarTabela() {
   });
 
   if (!filtrados.length) {
-    corpo.innerHTML = '<tr><td colspan="6" class="vazio">Nenhum produto</td></tr>';
+    corpo.innerHTML = '<tr><td colspan="6" class="vazio">Nenhum produto encontrado</td></tr>';
     return;
   }
 
@@ -115,7 +113,7 @@ function renderizarTabela() {
       <td><span class="badge badge-${destaque==='Sim'?'destaque':'nao'}">${destaque}</span></td>
       <td><span class="badge badge-${ativo==='Sim'?'sim':'nao'}">${ativo}</span></td>
       <td class="acoes">
-        <button class="btn btn-sm btn-icono" onclick="editar(${p._linha})" style="cursor:pointer">️</button>
+        <button class="btn btn-sm btn-icono" onclick="editar(${p._linha})" style="cursor:pointer">✏️</button>
         <button class="btn btn-sm btn-icono" onclick="excluir(${p._linha})" style="cursor:pointer">🗑️</button>
       </td>
     </tr>`;
@@ -149,9 +147,11 @@ function editar(linha) {
   abrirModal();
 }
 
+// ✅ SALVAR (Configurado APENAS para os campos que você manteve)
 document.getElementById('formProduto').onsubmit = async (e) => {
   e.preventDefault();
   const linha = document.getElementById('campoLinha').value;
+  
   const produto = {
     'Ativo': document.getElementById('ativo').value,
     'Tipo': document.getElementById('tipo').value.trim(),
@@ -173,18 +173,30 @@ document.getElementById('formProduto').onsubmit = async (e) => {
     const url = `${URL_GRAVAR_PRODUTOS}?data=${encodeURIComponent(JSON.stringify(dados))}`;
     const resp = await fetch(url, { method: 'GET' });
     const texto = await resp.text();
+    
     let json;
     try { json = JSON.parse(texto); } catch {
-      toast('Erro: resposta inválida', 'erro'); return;
+      toast('Erro: resposta inválida do servidor', 'erro'); 
+      console.error('Resposta crua do servidor:', texto);
+      return;
     }
-    if (json.ok) { toast('Salvo!', 'sucesso'); fecharModal(); setTimeout(carregarProdutos, 1500); }
-    else toast('Erro: ' + json.msg, 'erro');
-  } catch (err) { toast('Erro: ' + err.message, 'erro'); }
+    
+    if (json.ok) { 
+      toast('Salvo com sucesso!', 'sucesso'); 
+      fecharModal(); 
+      setTimeout(carregarProdutos, 1500); 
+    } else { 
+      toast('Erro: ' + json.msg, 'erro'); 
+    }
+  } catch (err) { 
+    toast('Erro de conexão: ' + err.message, 'erro'); 
+    console.error(err);
+  }
 };
 
 async function excluir(linha) {
   const p = produtos.find(x => x._linha === linha);
-  if (!confirm(`Excluir "${get(p,'Nome')}"?`)) return;
+  if (!confirm(`Excluir "${get(p,'Nome') || 'este produto'}"?`)) return;
   try {
     toast('Excluindo...');
     const url = `${URL_GRAVAR_PRODUTOS}?data=${encodeURIComponent(JSON.stringify({acao:'excluir',linha}))}`;
