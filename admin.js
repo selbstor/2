@@ -187,9 +187,6 @@ function editar(linha) {
   document.getElementById('validade').value = get(p, 'Validade da oferta');
   document.getElementById('link').value = get(p, 'Link de Afiliado', 'Link');
   document.getElementById('imagem1').value = get(p, 'Imagem 1', 'Imagem');
-  document.getElementById('imagem2').value = get(p, 'Imagem 2');
-  document.getElementById('imagem3').value = get(p, 'Imagem 3');
-  document.getElementById('imagem4').value = get(p, 'Imagem 4');
   document.getElementById('ordem').value = get(p, 'Ordem');
   document.getElementById('destaque').value = get(p, 'Destaque') || 'Não';
   
