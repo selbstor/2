@@ -19,7 +19,6 @@ async function carregarProdutos() {
     let texto = await resp.text();
     if (texto.charCodeAt(0) === 0xFEFF) texto = texto.slice(1);
     produtos = parseCSV(texto);
-    console.log('✅ Produtos carregados:', produtos.length);
     renderizarTabela();
   } catch (e) {
     console.error('Erro:', e);
@@ -97,7 +96,7 @@ function get(p, ...nomes) {
   return '';
 }
 
-// ============ ESCAPE HTML (✅ CORRIGIDO) ============
+// ============ ESCAPE HTML (✅ CORRIGIDO - SEM ERRO DE SINTAXE) ============
 function escapeHtml(s) {
   if (s === null || s === undefined) return '';
   return String(s).replace(/[&<>"']/g, c => ({
@@ -109,7 +108,7 @@ function escapeHtml(s) {
   }[c]));
 }
 
-// ============ RENDERIZAR TABELA (✅ CORRIGIDO COM EVENT LISTENERS) ============
+// ============ RENDERIZAR TABELA ============
 function renderizarTabela() {
   const busca = document.getElementById('busca').value.toLowerCase();
   const filtro = document.getElementById('filtroStatus').value;
@@ -148,40 +147,16 @@ function renderizarTabela() {
         <td><span class="badge badge-${destaque === 'Sim' ? 'destaque' : 'nao'}">${destaque}</span></td>
         <td><span class="badge badge-${ativo === 'Sim' ? 'sim' : 'nao'}">${ativo}</span></td>
         <td class="acoes">
-          <button class="btn btn-sm btn-icono btn-editar" data-linha="${p._linha}" title="Editar produto">✏️</button>
-          <button class="btn btn-sm btn-icono btn-excluir" data-linha="${p._linha}" title="Excluir produto">🗑️</button>
+          <button class="btn btn-sm btn-icono" title="Editar produto" onclick="editar(${p._linha})">✏️</button>
+          <button class="btn btn-sm btn-icono" title="Excluir produto" onclick="excluir(${p._linha})">️</button>
         </td>
       </tr>
     `;
   }).join('');
-  
-  // ✅ Adiciona event listeners após renderizar
-  setTimeout(() => {
-    document.querySelectorAll('.btn-editar').forEach(btn => {
-      btn.addEventListener('click', function(e) {
-        e.preventDefault();
-        e.stopPropagation();
-        const linha = parseInt(this.getAttribute('data-linha'));
-        console.log('🔧 Clicou em editar, linha:', linha);
-        editar(linha);
-      });
-    });
-    
-    document.querySelectorAll('.btn-excluir').forEach(btn => {
-      btn.addEventListener('click', function(e) {
-        e.preventDefault();
-        e.stopPropagation();
-        const linha = parseInt(this.getAttribute('data-linha'));
-        console.log('🗑️ Clicou em excluir, linha:', linha);
-        excluir(linha);
-      });
-    });
-  }, 100);
 }
 
 // ============ MODAL ============
 function abrirModal() { 
-  console.log('📂 Abrindo modal...');
   document.getElementById('modal').classList.remove('oculto'); 
 }
 function fecharModal() {
@@ -197,12 +172,12 @@ function novoProduto() {
   abrirModal();
 }
 
-// ✅ FUNÇÃO EDITAR CORRIGIDA
+// ============ EDITAR (✅ FUNCIONANDO) ============
 function editar(linha) {
-  console.log('️ Editando linha:', linha);
+  console.log('Editando linha:', linha);
   const p = produtos.find(x => x._linha === linha);
   if (!p) {
-    console.error('❌ Produto não encontrado:', linha);
+    console.error('Produto não encontrado:', linha);
     return;
   }
   
@@ -225,7 +200,6 @@ function editar(linha) {
   document.getElementById('destaque').value = get(p, 'Destaque') || 'Não';
   document.getElementById('ativo').value = get(p, 'Ativo') || 'Sim';
   
-  console.log('✅ Modal preenchido, abrindo...');
   abrirModal();
 }
 
@@ -257,10 +231,8 @@ document.getElementById('formProduto').addEventListener('submit', async (e) => {
     produto: produto
   };
   
-  console.log('📤 Enviando dados:', dados);
-  
   try {
-    toast('💾 Salvando...', '');
+    toast('Salvando...', '');
     const urlEnvio = `${URL_GRAVAR_PRODUTOS}?data=${encodeURIComponent(JSON.stringify(dados))}`;
     const resp = await fetch(urlEnvio, { method: 'GET' });
     const texto = await resp.text();
@@ -289,7 +261,6 @@ document.getElementById('formProduto').addEventListener('submit', async (e) => {
 
 // ============ EXCLUIR ============
 async function excluir(linha) {
-  console.log('🗑️ Excluindo linha:', linha);
   const p = produtos.find(x => x._linha === linha);
   const nomeProduto = p ? (get(p, 'Nome') || 'este produto') : 'este produto';
   if (!confirm(`Deseja realmente excluir:\n\n"${nomeProduto}"?`)) return;
