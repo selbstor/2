@@ -119,6 +119,7 @@
     justify-content: center;
     z-index: 1000;
     padding: 20px;
+    backdrop-filter: blur(4px);
   }
   .modal-overlay.oculto { display: none; }
   .modal {
@@ -193,6 +194,169 @@
   .toast.sucesso { background: #27ae60; }
   .toast.erro { background: #e74c3c; }
   .toast.oculto { opacity: 0; transform: translateY(20px); pointer-events: none; }
+
+  /* ============================================ */
+  /* MODAL DE CONFIRMAÇÃO DE EXCLUSÃO (NOVO)      */
+  /* ============================================ */
+  .modal-confirmacao {
+    position: fixed;
+    inset: 0;
+    background: rgba(0,0,0,0.6);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    z-index: 3000;
+    padding: 20px;
+    backdrop-filter: blur(4px);
+    animation: fadeIn 0.2s ease;
+  }
+  .modal-confirmacao.oculto { display: none; }
+  .modal-confirmacao .modal-box {
+    background: white;
+    border-radius: 16px;
+    width: 100%;
+    max-width: 480px;
+    max-height: 85vh;
+    overflow: hidden;
+    box-shadow: 0 25px 60px rgba(0,0,0,0.3);
+    animation: slideUp 0.3s ease;
+  }
+  @keyframes fadeIn {
+    from { opacity: 0; }
+    to { opacity: 1; }
+  }
+  @keyframes slideUp {
+    from { opacity: 0; transform: translateY(30px) scale(0.95); }
+    to { opacity: 1; transform: translateY(0) scale(1); }
+  }
+  .modal-confirmacao .modal-icon {
+    width: 70px;
+    height: 70px;
+    border-radius: 50%;
+    background: linear-gradient(135deg, #e74c3c, #c0392b);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    margin: 25px auto 15px;
+    box-shadow: 0 8px 20px rgba(231, 76, 60, 0.3);
+  }
+  .modal-confirmacao .modal-icon i {
+    font-size: 1.8rem;
+    color: white;
+  }
+  .modal-confirmacao .modal-body {
+    padding: 0 25px 20px;
+    text-align: center;
+  }
+  .modal-confirmacao .modal-body h3 {
+    font-size: 1.25rem;
+    color: #2c3e50;
+    margin-bottom: 8px;
+  }
+  .modal-confirmacao .modal-body p {
+    color: #666;
+    font-size: 0.9rem;
+    line-height: 1.5;
+    margin-bottom: 15px;
+  }
+  .modal-confirmacao .modal-body .qtd-destaque {
+    display: inline-block;
+    background: #e74c3c;
+    color: white;
+    padding: 4px 14px;
+    border-radius: 20px;
+    font-weight: 700;
+    font-size: 0.9rem;
+  }
+  .modal-confirmacao .lista-produtos {
+    background: #f8f9fa;
+    border-radius: 10px;
+    padding: 12px 15px;
+    margin: 10px 0 5px;
+    max-height: 200px;
+    overflow-y: auto;
+    text-align: left;
+  }
+  .modal-confirmacao .lista-produtos::-webkit-scrollbar {
+    width: 6px;
+  }
+  .modal-confirmacao .lista-produtos::-webkit-scrollbar-thumb {
+    background: #ccc;
+    border-radius: 3px;
+  }
+  .modal-confirmacao .lista-produtos ul {
+    list-style: none;
+    padding: 0;
+    margin: 0;
+  }
+  .modal-confirmacao .lista-produtos li {
+    padding: 6px 0;
+    font-size: 0.85rem;
+    color: #444;
+    border-bottom: 1px solid #eee;
+    display: flex;
+    align-items: center;
+    gap: 8px;
+  }
+  .modal-confirmacao .lista-produtos li:last-child {
+    border-bottom: none;
+  }
+  .modal-confirmacao .lista-produtos li i {
+    color: #e74c3c;
+    font-size: 0.75rem;
+  }
+  .modal-confirmacao .lista-produtos .mais-itens {
+    text-align: center;
+    color: #888;
+    font-size: 0.8rem;
+    font-style: italic;
+    padding: 6px 0 2px;
+  }
+  .modal-confirmacao .modal-footer {
+    display: flex;
+    gap: 10px;
+    padding: 15px 25px 25px;
+  }
+  .modal-confirmacao .modal-footer .btn {
+    flex: 1;
+    justify-content: center;
+    padding: 12px 18px;
+    font-size: 0.95rem;
+  }
+  .modal-confirmacao .btn-cancelar {
+    background: #ecf0f1;
+    color: #2c3e50;
+  }
+  .modal-confirmacao .btn-cancelar:hover {
+    background: #d5dbdb;
+  }
+  .modal-confirmacao .btn-confirmar-excluir {
+    background: linear-gradient(135deg, #e74c3c, #c0392b);
+    color: white;
+    box-shadow: 0 4px 12px rgba(231, 76, 60, 0.3);
+  }
+  .modal-confirmacao .btn-confirmar-excluir:hover {
+    box-shadow: 0 6px 16px rgba(231, 76, 60, 0.4);
+    transform: translateY(-1px);
+  }
+  .modal-confirmacao .btn-confirmar-excluir:active {
+    transform: translateY(0);
+  }
+  .modal-confirmacao .btn-confirmar-excluir:disabled {
+    opacity: 0.6;
+    cursor: not-allowed;
+    transform: none;
+  }
+  .modal-confirmacao .aviso-irreversivel {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 6px;
+    font-size: 0.78rem;
+    color: #e74c3c;
+    margin-top: 8px;
+    font-weight: 500;
+  }
 </style>
 </head>
 <body>
@@ -240,7 +404,7 @@
   </table>
 </div>
 
-<!-- Modal -->
+<!-- Modal de Edição/Criação -->
 <div id="modal" class="modal-overlay oculto">
   <div class="modal">
     <div class="modal-header">
@@ -283,7 +447,7 @@
       </div>
 
       <div class="form-secao">
-        <h3> Link e botão</h3>
+        <h3>🔗 Link</h3>
         <div class="form-grupo">
           <label>Link de Afiliado *</label>
           <input type="url" id="link" required>
@@ -299,7 +463,7 @@
       </div>
 
       <div class="form-secao">
-        <h3>️ Configurações</h3>
+        <h3>⚙️ Configurações</h3>
         <div class="form-linha">
           <div class="form-grupo">
             <label>Ordem</label>
@@ -327,6 +491,38 @@
         <button type="submit" class="btn btn-success">💾 Salvar</button>
       </div>
     </form>
+  </div>
+</div>
+
+<!-- ============================================ -->
+<!-- MODAL DE CONFIRMAÇÃO DE EXCLUSÃO (NOVO)      -->
+<!-- ============================================ -->
+<div id="modalConfirmacao" class="modal-confirmacao oculto">
+  <div class="modal-box">
+    <div class="modal-icon">
+      <i class="fas fa-exclamation-triangle"></i>
+    </div>
+    <div class="modal-body">
+      <h3>Confirmar Exclusão</h3>
+      <p>
+        Você está prestes a excluir <span class="qtd-destaque" id="qtdExcluir">0</span> produto(s).
+      </p>
+      <div class="lista-produtos" id="listaProdutosExcluir">
+        <!-- Preenchido via JS -->
+      </div>
+      <div class="aviso-irreversivel">
+        <i class="fas fa-info-circle"></i>
+        Esta ação não pode ser desfeita
+      </div>
+    </div>
+    <div class="modal-footer">
+      <button class="btn btn-cancelar" onclick="fecharConfirmacao()">
+        <i class="fas fa-times"></i> Cancelar
+      </button>
+      <button class="btn btn-confirmar-excluir" id="btnConfirmarExcluir" onclick="confirmarExclusao()">
+        <i class="fas fa-trash-alt"></i> Sim, excluir tudo
+      </button>
+    </div>
   </div>
 </div>
 
