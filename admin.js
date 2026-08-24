@@ -83,6 +83,7 @@ function parseLinhaCSV(linha) {
   return res;
 }
 
+// ============ BUSCA SEGURA ============
 function get(p, ...nomes) {
   for (const nome of nomes) {
     for (const chave of Object.keys(p)) {
@@ -107,11 +108,12 @@ function escapeHtml(s) {
   }[c]));
 }
 
-// ============ RENDERIZAR TABELA ============
+// ============ RENDERIZAR TABELA (✅ CORRIGIDO) ============
 function renderizarTabela() {
   const busca = document.getElementById('busca').value.toLowerCase();
   const filtro = document.getElementById('filtroStatus').value;
   const corpo = document.getElementById('corpoTabela');
+  
   const filtrados = produtos.filter(p => {
     const nome = (get(p, 'Nome') || '').toLowerCase();
     const cat = (get(p, 'Categoria') || '').toLowerCase();
@@ -132,6 +134,7 @@ function renderizarTabela() {
     const cat = get(p, 'Categoria') || '-';
     const destaque = get(p, 'Destaque') || 'Não';
     const ativo = get(p, 'Ativo') || 'Sim';
+    
     const imgHtml = img
       ? `<img src="${escapeHtml(img)}" alt="" onerror="this.style.display='none'">`
       : '—';
@@ -179,11 +182,11 @@ function editar(linha) {
   document.getElementById('subcategoria').value = get(p, 'Subcategoria');
   document.getElementById('validade').value = get(p, 'Validade da oferta');
   document.getElementById('link').value = get(p, 'Link de Afiliado', 'Link');
-  document.getElementById('textoBotao').value = get(p, 'Texto do Botão');
+  document.getElementById('textoBotao').value = get(p, 'Texto do Botão') || '';
   document.getElementById('imagem1').value = get(p, 'Imagem 1', 'Imagem');
-  document.getElementById('imagem2').value = get(p, 'Imagem 2');
-  document.getElementById('imagem3').value = get(p, 'Imagem 3');
-  document.getElementById('imagem4').value = get(p, 'Imagem 4');
+  document.getElementById('imagem2').value = get(p, 'Imagem 2') || '';
+  document.getElementById('imagem3').value = get(p, 'Imagem 3') || '';
+  document.getElementById('imagem4').value = get(p, 'Imagem 4') || '';
   document.getElementById('ordem').value = get(p, 'Ordem') || '0';
   document.getElementById('destaque').value = get(p, 'Destaque') || 'Não';
   document.getElementById('ativo').value = get(p, 'Ativo') || 'Sim';
@@ -269,10 +272,10 @@ async function excluir(linha) {
       toast('✅ Excluído!', 'sucesso');
       setTimeout(carregarProdutos, 1500);
     } else {
-      toast('❌ Erro: ' + resJson.msg, 'erro');
+      toast('❌ Erro: ' + (resJson.msg || 'Desconhecido'), 'erro');
     }
   } catch (err) {
-    toast(' Erro de conexão', 'erro');
+    toast('❌ Erro: ' + err.message, 'erro');
   }
 }
 
