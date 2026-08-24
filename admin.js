@@ -170,17 +170,18 @@ function editar(linha) {
   produtoEditando = p;
   document.getElementById('modalTitulo').textContent = 'Editar Produto';
   document.getElementById('campoLinha').value = linha;
-  document.getElementById('nome').value = get(p, 'Nome');
+  document.getElementById('ativo').value = get(p, 'Ativo') || 'Sim';
   document.getElementById('tipo').value = get(p, 'Tipo');
   document.getElementById('plataforma').value = get(p, 'Plataforma');
   document.getElementById('categoria').value = get(p, 'Categoria');
   document.getElementById('subcategoria').value = get(p, 'Subcategoria');
+  document.getElementById('nome').value = get(p, 'Nome');
   document.getElementById('validade').value = get(p, 'Validade da oferta');
   document.getElementById('link').value = get(p, 'Link de Afiliado', 'Link');
   document.getElementById('imagem1').value = get(p, 'Imagem 1', 'Imagem');
   document.getElementById('ordem').value = get(p, 'Ordem') || '0';
   document.getElementById('destaque').value = get(p, 'Destaque') || 'Não';
-  document.getElementById('ativo').value = get(p, 'Ativo') || 'Sim';
+
   abrirModal();
 }
 
