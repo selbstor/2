@@ -5,7 +5,7 @@ let produtoEditando = null;
 // ============ CARREGAR ============
 async function carregarProdutos() {
   const corpo = document.getElementById('corpoTabela');
-  corpo.innerHTML = '<tr><td colspan="6" class="vazio">Carregando produtos...</td></tr>';
+  corpo.innerHTML = '<tr><td colspan="8" class="vazio">Carregando produtos...</td></tr>';
   try {
     const resp = await fetch(ACHADINHOS.planilha_catalogo + '&t=' + Date.now(), {
       method: 'GET',
@@ -13,20 +13,20 @@ async function carregarProdutos() {
       cache: 'no-cache'
     });
     if (!resp.ok) {
-      corpo.innerHTML = `<tr><td colspan="6" class="vazio">Erro HTTP ${resp.status} ao carregar planilha.</td></tr>`;
+      corpo.innerHTML = `<tr><td colspan="8" class="vazio">Erro HTTP ${resp.status} ao carregar planilha.</td></tr>`;
       return;
     }
     let texto = await resp.text();
-    if (texto.charCodeAt(0) === 0xFEFF) texto = texto.slice(1);
+    if (texto.charCodeAt(0) === 0xFEFF) texto = texto.slice(1); // Remove BOM
     produtos = parseCSV(texto);
     renderizarTabela();
   } catch (e) {
     console.error('Erro:', e);
-    corpo.innerHTML = `<tr><td colspan="6" class="vazio">Erro de conexão: ${e.message}</td></tr>`;
+    corpo.innerHTML = `<tr><td colspan="8" class="vazio">Erro de conexão: ${e.message}</td></tr>`;
   }
 }
 
-// ============ PARSER CSV ============
+// ============ PARSER CSV ROBUSTO ============
 function parseCSV(texto) {
   const linhas = texto.split(/\r?\n/);
   if (linhas.length < 2) return [];
@@ -39,6 +39,7 @@ function parseCSV(texto) {
     }
   }
   if (indiceCabecalho === -1) indiceCabecalho = 0;
+  
   const cabecalhos = parseLinhaCSV(linhas[indiceCabecalho]);
   return linhas.slice(indiceCabecalho + 1)
     .filter(l => l.trim().length > 0)
@@ -60,30 +61,20 @@ function parseLinhaCSV(linha) {
     const c = linha[i];
     const proximo = linha[i + 1];
     if (aspas) {
-      if (c === '"' && proximo === '"') {
-        atual += '"';
-        i++;
-      } else if (c === '"') {
-        aspas = false;
-      } else {
-        atual += c;
-      }
+      if (c === '"' && proximo === '"') { atual += '"'; i++; } 
+      else if (c === '"') { aspas = false; } 
+      else { atual += c; }
     } else {
-      if (c === '"') {
-        aspas = true;
-      } else if (c === ',') {
-        res.push(atual.trim());
-        atual = '';
-      } else {
-        atual += c;
-      }
+      if (c === '"') { aspas = true; } 
+      else if (c === ',') { res.push(atual.trim()); atual = ''; } 
+      else { atual += c; }
     }
   }
   res.push(atual.trim());
   return res;
 }
 
-// ============ BUSCA SEGURA ============
+// ============ BUSCA SEGURA (Normaliza acentos) ============
 function get(p, ...nomes) {
   for (const nome of nomes) {
     for (const chave of Object.keys(p)) {
@@ -96,19 +87,15 @@ function get(p, ...nomes) {
   return '';
 }
 
-// ============ ESCAPE HTML (✅ CORRIGIDO - SEM ERRO DE SINTAXE) ============
+// ============ ESCAPE HTML ============
 function escapeHtml(s) {
   if (s === null || s === undefined) return '';
   return String(s).replace(/[&<>"']/g, c => ({
-    '&': '&amp;',
-    '<': '&lt;',
-    '>': '&gt;',
-    '"': '&quot;',
-    "'": '&#39;'
+    '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;'
   }[c]));
 }
 
-// ============ RENDERIZAR TABELA ============
+// ============ RENDERIZAR TABELA (Atualizada com mais colunas) ============
 function renderizarTabela() {
   const busca = (document.getElementById('busca').value || '').toLowerCase();
   const filtro = document.getElementById('filtroStatus').value;
@@ -124,7 +111,7 @@ function renderizarTabela() {
   });
   
   if (filtrados.length === 0) {
-    corpo.innerHTML = '<tr><td colspan="6" class="vazio">Nenhum produto encontrado</td></tr>';
+    corpo.innerHTML = '<tr><td colspan="8" class="vazio">Nenhum produto encontrado</td></tr>';
     return;
   }
   
@@ -132,18 +119,18 @@ function renderizarTabela() {
     const nome = get(p, 'Nome') || '(sem nome)';
     const img = (get(p, 'Imagem 1', 'Imagem') || '').trim();
     const cat = get(p, 'Categoria') || '-';
+    const preco = get(p, 'Preço') || '0';
     const destaque = get(p, 'Destaque') || 'Não';
     const ativo = get(p, 'Ativo') || 'Sim';
     
-    const imgHtml = img
-      ? `<img src="${escapeHtml(img)}" alt="" onerror="this.style.display='none'">`
-      : '—';
+    const imgHtml = img ? `<img src="${escapeHtml(img)}" alt="" style="width:40px;height:40px;object-fit:cover;border-radius:4px;" onerror="this.style.display='none'">` : '—';
     
     return `
       <tr>
         <td>${imgHtml}</td>
         <td><strong>${escapeHtml(nome)}</strong></td>
         <td>${escapeHtml(cat)}</td>
+        <td>R$ ${escapeHtml(preco)}</td>
         <td><span class="badge badge-${destaque === 'Sim' ? 'destaque' : 'nao'}">${destaque}</span></td>
         <td><span class="badge badge-${ativo === 'Sim' ? 'sim' : 'nao'}">${ativo}</span></td>
         <td class="acoes">
@@ -169,6 +156,8 @@ function novoProduto() {
   document.getElementById('campoLinha').value = '';
   abrirModal();
 }
+
+// ✅ CORRIGIDO: Agora preenche TODOS os campos da planilha
 function editar(linha) {
   const p = produtos.find(x => x._linha === linha);
   if (!p) { alert('Produto não encontrado'); return; }
@@ -176,17 +165,31 @@ function editar(linha) {
   produtoEditando = p;
   document.getElementById('modalTitulo').textContent = 'Editar Produto';
   document.getElementById('campoLinha').value = linha;
-  document.getElementById('nome').value = get(p, 'Nome') || '';
-  document.getElementById('tipo').value = get(p, 'Tipo') || '';
+  
+  document.getElementById('ativo').value = get(p, 'Ativo') || 'Sim';
+  document.getElementById('tipo').value = get(p, 'Tipo') || 'FISICO';
   document.getElementById('plataforma').value = get(p, 'Plataforma') || '';
   document.getElementById('categoria').value = get(p, 'Categoria') || '';
   document.getElementById('subcategoria').value = get(p, 'Subcategoria') || '';
+  
+  document.getElementById('nome').value = get(p, 'Nome') || '';
+  document.getElementById('descricao').value = get(p, 'Descrição') || '';
+  document.getElementById('preco').value = get(p, 'Preço') || '';
+  document.getElementById('precoPromocional').value = get(p, 'Preço Promocional') || '';
+  document.getElementById('cupom').value = get(p, 'Cupom') || '';
+  
   document.getElementById('validade').value = get(p, 'Validade da oferta') || '';
   document.getElementById('link').value = get(p, 'Link de Afiliado', 'Link') || '';
+  document.getElementById('textoBotao').value = get(p, 'Texto do Botão') || '';
+  document.getElementById('video').value = get(p, 'Vídeo (URL YouTube)', 'Vídeo') || '';
+  
   document.getElementById('imagem1').value = get(p, 'Imagem 1', 'Imagem') || '';
+  document.getElementById('imagem2').value = get(p, 'Imagem 2') || '';
+  document.getElementById('imagem3').value = get(p, 'Imagem 3') || '';
+  document.getElementById('imagem4').value = get(p, 'Imagem 4') || '';  
+  
   document.getElementById('ordem').value = get(p, 'Ordem') || '0';
   document.getElementById('destaque').value = get(p, 'Destaque') || 'Não';
-  document.getElementById('ativo').value = get(p, 'Ativo') || 'Sim';
   
   abrirModal();
 }
@@ -195,6 +198,8 @@ function editar(linha) {
 document.getElementById('formProduto').addEventListener('submit', async (e) => {
   e.preventDefault();
   const linha = document.getElementById('campoLinha').value;
+  
+  // ✅ CORRIGIDO: Objeto com TODAS as 20 colunas exatas da planilha
   const produto = {
     'Ativo': document.getElementById('ativo').value,
     'Tipo': document.getElementById('tipo').value.trim(),
@@ -202,9 +207,18 @@ document.getElementById('formProduto').addEventListener('submit', async (e) => {
     'Categoria': document.getElementById('categoria').value.trim(),
     'Subcategoria': document.getElementById('subcategoria').value.trim(),
     'Nome': document.getElementById('nome').value.trim(),
+    'Descrição': document.getElementById('descricao').value.trim(),
+    'Preço': document.getElementById('preco').value.trim(),
+    'Preço Promocional': document.getElementById('precoPromocional').value.trim(),
+    'Cupom': document.getElementById('cupom').value.trim(),
     'Validade da oferta': document.getElementById('validade').value.trim(),
     'Link de Afiliado': document.getElementById('link').value.trim(),
+    'Texto do Botão': document.getElementById('textoBotao').value.trim(),
+    'Vídeo (URL YouTube)': document.getElementById('video').value.trim(),
     'Imagem 1': document.getElementById('imagem1').value.trim(),
+    'Imagem 2': document.getElementById('imagem2').value.trim(),
+    'Imagem 3': document.getElementById('imagem3').value.trim(),
+    'Imagem 4': document.getElementById('imagem4').value.trim(),
     'Ordem': document.getElementById('ordem').value.trim(),
     'Destaque': document.getElementById('destaque').value,
   };
@@ -222,16 +236,15 @@ document.getElementById('formProduto').addEventListener('submit', async (e) => {
     const texto = await resp.text();
     
     let resJson;
-    try {
-      resJson = JSON.parse(texto);
-    } catch (parseErr) {
+    try { resJson = JSON.parse(texto); } 
+    catch (parseErr) {
       console.error('Resposta inválida:', texto);
       toast('❌ Servidor retornou resposta inválida.', 'erro');
       return;
     }
 
     if (resJson.ok) {
-      toast('✅ ' + (resJson.msg || 'Salvo!'), 'sucesso');
+      toast('✅ ' + (resJson.msg || 'Salvo com sucesso!'), 'sucesso');
       fecharModal();
       setTimeout(carregarProdutos, 1500);
     } else {
@@ -239,7 +252,7 @@ document.getElementById('formProduto').addEventListener('submit', async (e) => {
     }
   } catch (err) {
     console.error(err);
-    toast('❌ Erro: ' + err.message, 'erro');
+    toast('❌ Erro de rede: ' + err.message, 'erro');
   }
 });
 
@@ -250,33 +263,36 @@ async function excluir(linha) {
   if (!confirm(`Deseja realmente excluir:\n\n"${nomeProduto}"?`)) return;
   
   try {
-    toast('Excluindo...', '');
+    toast('🗑️ Excluindo...', '');
     const dados = { acao: 'excluir', linha: linha };
     const urlEnvio = `${URL_GRAVAR_PRODUTOS}?data=${encodeURIComponent(JSON.stringify(dados))}`;
     const resp = await fetch(urlEnvio, { method: 'GET' });
     const texto = await resp.text();
     
     let resJson;
-    try { resJson = JSON.parse(texto); } catch (err) {
-      toast('❌ Resposta inválida', 'erro');
+    try { resJson = JSON.parse(texto); } 
+    catch (err) {
+      toast('❌ Resposta inválida do servidor', 'erro');
       return;
     }
 
     if (resJson.ok) {
-      toast('✅ Excluído!', 'sucesso');
+      toast('✅ Excluído com sucesso!', 'sucesso');
       setTimeout(carregarProdutos, 1500);
     } else {
       toast('❌ Erro: ' + (resJson.msg || 'Desconhecido'), 'erro');
     }
   } catch (err) {
-    toast('❌ Erro: ' + err.message, 'erro');
+    toast('❌ Erro de rede: ' + err.message, 'erro');
   }
 }
 
 function toast(msg, tipo) {
   const t = document.getElementById('toast');
+  if (!t) return;
   t.textContent = msg;
   t.className = 'toast ' + (tipo || '');
+  t.classList.remove('oculto');
   setTimeout(() => t.classList.add('oculto'), 3500);
 }
 
@@ -286,4 +302,5 @@ document.getElementById('btnRecarregar').onclick = carregarProdutos;
 document.getElementById('busca').oninput = renderizarTabela;
 document.getElementById('filtroStatus').onchange = renderizarTabela;
 
+// Inicializa
 carregarProdutos();
