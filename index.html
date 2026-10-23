@@ -2088,7 +2088,7 @@
   <!-- Error -->
   <div class="error-screen" id="errorScreen">
     <h2>Ops! Não foi possível carregar a loja</h2>
-    <p>Verifique se a planilha está publicada corretamente e tente novamente.</p>
+    <p id="errorScreenMsg">Verifique sua conexão e tente novamente.</p>
   </div>
 
   <div class='top-bar' id='topBar'></div>
@@ -2324,8 +2324,8 @@
     <button class="toast-btn" onclick="openCart()">Ver Carrinho</button>
   </div>
 
-  <!-- Config (external file) -->
-  <script src="config.js"></script>
+  <!-- Cadastro de lojas + URL da API (Apps Script) -->
+  <script src="usuarios.js"></script>
 
   <script>
     // ============================================
@@ -2344,6 +2344,42 @@
     let activeSubcategory = null;
     let currentProduct = null;
     let selectedVariation = null;
+
+    // ============================================
+    // API (Google Apps Script) — substitui o antigo config.js / CSVs publicados
+    // ============================================
+    let _dadosLojaPromise = null;
+
+    // Busca de uma vez só as abas da planilha da loja (configurações, produtos, clientes, delivery).
+    // A loja é identificada pela URL da página (cadastrada em usuarios.js e no Code.gs).
+    function carregarDadosLoja() {
+      if (_dadosLojaPromise) return _dadosLojaPromise;
+      _dadosLojaPromise = (async function () {
+        if (typeof selbstorBuscarUsuario !== 'function' || typeof API_URL === 'undefined') {
+          throw new Error('Arquivo usuarios.js não carregado.');
+        }
+        const usuario = selbstorBuscarUsuario();
+        if (!usuario) throw new Error('Loja não cadastrada para esta URL: ' + selbstorUrlAtual());
+        if (usuario.vencida) throw new Error('Licença vencida para a loja: ' + usuario.nome);
+
+        const url = API_URL + '?action=dados&url=' + encodeURIComponent(window.location.origin + window.location.pathname) + '&_t=' + Date.now();
+        const res = await fetch(url, { cache: 'no-store' });
+        if (!res.ok) throw new Error('Falha HTTP ' + res.status + ' ao consultar a API.');
+        const json = await res.json();
+        if (!json || json.status !== 'ok') throw new Error((json && json.mensagem) || 'Resposta inválida da API.');
+        return json;
+      })();
+      // se falhar, permite nova tentativa na próxima chamada
+      _dadosLojaPromise.catch(function () { _dadosLojaPromise = null; });
+      return _dadosLojaPromise;
+    }
+
+    // Converte as linhas devolvidas pela API no mesmo formato que o parseCSV() devolvia
+    function normalizarLinhas(lista) {
+      return (lista || []).map(function (r) {
+        return (r || []).map(function (c) { return String(c == null ? '' : c).trim(); });
+      }).filter(function (r) { return r.length > 0; });
+    }
 
     // ============================================
     // CSV PARSER
@@ -2380,9 +2416,8 @@
     // LOAD CONFIG FROM SHEETS
     // ============================================
     async function loadConfig() {
-      const res = await fetch(LOJAFACIL.planilha_configuracoes + '&_t=' + Date.now(), { cache: 'no-store' });
-      const text = await res.text();
-      const rows = parseCSV(text);
+      const dados = await carregarDadosLoja();
+      const rows = normalizarLinhas(dados.configuracoes);
 
       const cfg = {};
       cfg.faixasEntrega = [];
@@ -2487,9 +2522,8 @@
     // LOAD PRODUCTS FROM SHEETS
     // ============================================
     async function loadProducts() {
-      const res = await fetch(LOJAFACIL.planilha_produtos + '&_t=' + Date.now(), { cache: 'no-store' });
-      const text = await res.text();
-      const rows = parseCSV(text);
+      const dados = await carregarDadosLoja();
+      const rows = normalizarLinhas(dados.produtos);
 
       const products = [];
       for (const row of rows) {
@@ -2526,12 +2560,9 @@
     // ============================================
     async function loadClientes() {
       try {
-        if (!LOJAFACIL.planilha_clientes) return; // aba não configurada, ignora silenciosamente
-
-        const res = await fetch(LOJAFACIL.planilha_clientes + '&_t=' + Date.now(), { cache: 'no-store' });
-        const text = await res.text();
-        const rows = parseCSV(text);
-        if (!rows.length) return;
+        const dados = await carregarDadosLoja();
+        const rows = normalizarLinhas(dados.clientes);
+        if (!rows.length) return; // aba vazia ou inexistente, ignora silenciosamente
 
         // Localiza a linha de cabeçalho procurando a coluna "TELEFONE"
         let headerIdx = -1;
@@ -2582,12 +2613,9 @@
     // ============================================
     async function loadDeliveryAreas() {
       try {
-        if (!LOJAFACIL.planilha_delivery) return; // aba não configurada, ignora silenciosamente
-
-        const res = await fetch(LOJAFACIL.planilha_delivery + '&_t=' + Date.now(), { cache: 'no-store' });
-        const text = await res.text();
-        const rows = parseCSV(text);
-        if (!rows.length) return;
+        const dados = await carregarDadosLoja();
+        const rows = normalizarLinhas(dados.delivery);
+        if (!rows.length) return; // aba vazia ou inexistente, ignora silenciosamente
 
         // Localiza a linha de cabeçalho procurando a coluna "BAIRRO" ou "CIDADE"
         // (o CEP não é mais usado para identificar a área de entrega)
@@ -3920,6 +3948,7 @@
       trackEvent('Purchase', { value: total });
       var itensList = cart.map(function(i) { return i.qty + 'x ' + i.nome + (i.variacao ? ' (' + i.variacao + ')' : '') + ' - R$ ' + fp(i.preco * i.qty); }).join(' | ');
       var dadosPedido = {
+        urlLoja: window.location.origin + window.location.pathname,
         numeroPedido: numeroPedido,
         dataHora: new Date().toLocaleString('pt-BR'),
         nome: name,
@@ -4003,7 +4032,16 @@
       // simples — sem tentar abrir o WhatsApp de forma alguma.
       if (!CONFIG.enviarWhatsapp) {
         var resultadoSemWhats = await salvarPedidoEObterNumero(dadosPedido).catch(function () { return null; });
-        var numeroPedidoFinalSemWhats = (resultadoSemWhats && resultadoSemWhats.numeroPedido) ? resultadoSemWhats.numeroPedido : numeroPedido;
+
+        // Sem WhatsApp, o pedido SÓ existe se foi gravado na planilha. Se falhou, avisa o cliente
+        // (mantendo o carrinho) em vez de mostrar uma confirmação falsa.
+        if (!resultadoSemWhats) {
+          if (btnEnviar) btnEnviar.disabled = false;
+          if (btnEnviarTexto) btnEnviarTexto.textContent = textoOriginalBtn || 'Enviar Pedido';
+          showToast('Não foi possível enviar o pedido. Verifique a conexão e tente novamente.', true);
+          return;
+        }
+        var numeroPedidoFinalSemWhats = resultadoSemWhats.numeroPedido ? resultadoSemWhats.numeroPedido : numeroPedido;
 
         // Monta a mensagem ANTES de esvaziar o carrinho — a função usa o carrinho atual
         // pra listar os itens, então precisa rodar antes do "cart = []" abaixo.
@@ -4199,17 +4237,17 @@
       return luminance > 0.55;
     }
     async function salvarPedidoEObterNumero(dadosPedido) {
-      if (!LOJAFACIL.salvar_pedidos) {
-        console.warn('LOJAFACIL.salvar_pedidos não está configurado — usando número provisório.');
+      if (typeof API_URL === 'undefined' || !API_URL) {
+        console.warn('API_URL não está configurada em usuarios.js — usando número provisório.');
         return null;
       }
+      var timeoutId = null;
       try {
         var controller = new AbortController();
-        // Timeout de segurança: o Apps Script pode levar até ~15s em caso de pedidos simultâneos (LockService)
-        var timeoutId = setTimeout(function() { controller.abort(); }, 12000);
+        // Timeout de segurança: o Apps Script pode levar alguns segundos (partida a frio + LockService)
+        timeoutId = setTimeout(function() { controller.abort(); }, 25000);
 
-
-        var response = await fetch(LOJAFACIL.salvar_pedidos, {
+        var response = await fetch(API_URL, {
           method: 'POST',
           // IMPORTANTE: usar text/plain (não application/json) evita o preflight CORS (OPTIONS),
           // que o Apps Script não trata. O doPost já faz JSON.parse(e.postData.contents) normalmente.
@@ -4220,8 +4258,13 @@
         clearTimeout(timeoutId);
 
         var data = await response.json();
+        if (!data || data.status !== 'ok') {
+          console.error('A API recusou o pedido:', data && data.mensagem ? data.mensagem : data);
+          return null;
+        }
         return data; // { status: 'ok', numeroPedido: N, ... }
       } catch (err) {
+        if (timeoutId) clearTimeout(timeoutId);
         console.error('Erro ao salvar pedido / obter número oficial:', err);
         return null;
       }
@@ -4390,7 +4433,7 @@
     }
     function fp(v) { return v.toFixed(2).replace(".", ","); }
     function parsePrecoBR(val) {
-      var s = (val || '').trim();
+      var s = String(val == null ? '' : val).replace(/[^\d.,\-]/g, '').trim();
       if (!s) return 0;
       // Se tem vírgula: formato BR (ex: 1.299,90 ou 146,90)
       if (s.indexOf(',') !== -1) return parseFloat(s.replace(/\./g, '').replace(',', '.')) || 0;
@@ -4482,6 +4525,8 @@
         setTimeout(() => document.getElementById("loadingScreen").remove(), 500);
       } catch (err) {
         console.error("LojaFácil Error:", err);
+        var errMsgEl = document.getElementById("errorScreenMsg");
+        if (errMsgEl && err && err.message) errMsgEl.textContent = err.message;
         document.getElementById("loadingScreen").style.display = "none";
         document.getElementById("errorScreen").classList.add("show");
       }
